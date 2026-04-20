@@ -81,12 +81,47 @@ const DayPage = ({ date, onBack, gcalEvents }) => {
   const [blocks, setBlocks] = useState(() => load(storageKey("blocks", dateStr), TIME_BLOCKS.map(b => ({...b, note:"", stars:0}))));
   const [notes, setNotes] = useState(() => load(storageKey("notes", dateStr), ""));
   const [reflection, setReflection] = useState(() => load(storageKey("reflection", dateStr), ""));
+  // QT 상태
+  const [qt, setQt] = useState(() => load(storageKey("qt", dateStr), { verse:"", verseText:"", apply:"", prayer:"" }));
+  const [qtAiLoading, setQtAiLoading] = useState(false);
+  const [qtAiResult, setQtAiResult] = useState(() => load(storageKey("qt_ai", dateStr), ""));
 
   useEffect(() => { save(storageKey("top3", dateStr), top3); }, [top3]);
   useEffect(() => { save(storageKey("todos", dateStr), todos); }, [todos]);
   useEffect(() => { save(storageKey("blocks", dateStr), blocks); }, [blocks]);
   useEffect(() => { save(storageKey("notes", dateStr), notes); }, [notes]);
   useEffect(() => { save(storageKey("reflection", dateStr), reflection); }, [reflection]);
+  useEffect(() => { save(storageKey("qt", dateStr), qt); }, [qt]);
+  useEffect(() => { save(storageKey("qt_ai", dateStr), qtAiResult); }, [qtAiResult]);
+
+  // QT AI 묵상 도움
+  const getQtAi = async () => {
+    if (!qt.verse && !qt.verseText) return;
+    setQtAiLoading(true);
+    setQtAiResult("");
+    try {
+      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(apiKey ? {"x-api-key": apiKey} : {}) },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 600,
+          system: `당신은 기독교 QT(경건의 시간) 묵상을 도와주는 AI입니다. 
+Enoch님은 개인사업자로 바쁜 일상 속에서 매일 QT를 실천하고 있습니다.
+말씀을 깊이 묵상할 수 있도록 3가지 질문을 제시하고, 오늘 하루에 적용할 수 있는 실천 방향을 간결하게 제안해주세요.
+따뜻하고 격려하는 톤으로, 한국어로 답변하세요.`,
+          messages: [{
+            role: "user",
+            content: `오늘의 말씀: ${qt.verse || ""}${qt.verseText ? `\n본문: ${qt.verseText}` : ""}\n\n이 말씀으로 QT 묵상을 도와주세요.`
+          }]
+        })
+      });
+      const data = await res.json();
+      setQtAiResult(data.content?.[0]?.text || "");
+    } catch { setQtAiResult("AI 묵상 도움을 불러오지 못했습니다."); }
+    setQtAiLoading(false);
+  };
 
   const Stars = ({ val, onChange }) => (
     <div style={{display:"flex", gap:2}}>
@@ -124,6 +159,46 @@ const DayPage = ({ date, onBack, gcalEvents }) => {
       </div>
 
       <div style={{padding:16, display:"flex", flexDirection:"column", gap:16}}>
+
+        {/* ✝️ QT 섹션 — 최상단 */}
+        <div style={{background:"linear-gradient(135deg, #1e1e1c, #242420)", borderRadius:14, padding:16, border:`1px solid ${P.goldMid}`, boxShadow:`0 0 20px ${P.goldDim}`}}>
+          <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14, paddingBottom:10, borderBottom:`1px solid ${P.border}`}}>
+            <div style={{display:"flex", alignItems:"center", gap:8}}>
+              <span style={{fontSize:16}}>✝️</span>
+              <div>
+                <div style={{fontSize:11, color:P.gold, fontWeight:700, letterSpacing:1.5}}>Q.T.</div>
+                <div style={{fontSize:9, color:P.textDim}}>경건의 시간</div>
+              </div>
+            </div>
+            <div style={{fontSize:10, color:P.textDim}}>{date.toLocaleDateString("ko-KR",{month:"short",day:"numeric",weekday:"short"})}</div>
+          </div>
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:10, color:P.gold, fontWeight:700, letterSpacing:1, marginBottom:8}}>📖 오늘의 말씀</div>
+            <input value={qt.verse} onChange={e => setQt({...qt, verse:e.target.value})} placeholder="말씀 구절 (예: 빌 4:13)" style={{width:"100%", background:P.bg, border:`1px solid ${P.border}`, borderRadius:8, color:P.gold, fontSize:14, fontWeight:600, outline:"none", fontFamily:"Georgia, serif", padding:"9px 12px", marginBottom:8, boxSizing:"border-box"}}/>
+            <textarea value={qt.verseText} onChange={e => setQt({...qt, verseText:e.target.value})} placeholder="말씀 본문을 입력하세요..." rows={3} style={{width:"100%", background:P.bg, border:`1px solid ${P.border}`, borderRadius:8, color:P.text, fontSize:13, outline:"none", fontFamily:"Georgia, serif", padding:"9px 12px", resize:"none", lineHeight:1.8, boxSizing:"border-box"}}/>
+          </div>
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:10, color:P.gold, fontWeight:700, letterSpacing:1, marginBottom:8}}>💡 오늘의 적용</div>
+            <textarea value={qt.apply} onChange={e => setQt({...qt, apply:e.target.value})} placeholder="이 말씀을 오늘 어떻게 적용할까요?" rows={3} style={{width:"100%", background:P.bg, border:`1px solid ${P.border}`, borderRadius:8, color:P.text, fontSize:13, outline:"none", fontFamily:"inherit", padding:"9px 12px", resize:"none", lineHeight:1.8, boxSizing:"border-box"}}/>
+          </div>
+          <div style={{marginBottom:14}}>
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8}}>
+              <div style={{fontSize:10, color:P.gold, fontWeight:700, letterSpacing:1}}>🤖 AI 묵상 도움</div>
+              <button onClick={getQtAi} disabled={qtAiLoading||(!qt.verse&&!qt.verseText)} style={{background:qt.verse||qt.verseText?`linear-gradient(135deg,${P.bronze},${P.gold})`:P.border, border:"none", borderRadius:7, padding:"5px 12px", color:qt.verse||qt.verseText?"#1a1a18":P.textDim, fontSize:11, fontWeight:700, cursor:qt.verse||qt.verseText?"pointer":"not-allowed", fontFamily:"inherit"}}>
+                {qtAiLoading?"묵상 중...":"묵상 질문 받기 →"}
+              </button>
+            </div>
+            {qtAiResult
+              ? <div style={{background:P.bg, borderRadius:8, padding:12, border:`1px solid ${P.border}`, fontSize:13, color:P.text, lineHeight:1.8, whiteSpace:"pre-wrap"}}>{qtAiResult}</div>
+              : <div style={{background:P.bg, borderRadius:8, padding:12, border:`1px dashed ${P.border}`, fontSize:12, color:P.textDim, textAlign:"center"}}>말씀을 입력하면 AI가 묵상 질문을 드려요</div>
+            }
+          </div>
+          <div>
+            <div style={{fontSize:10, color:P.gold, fontWeight:700, letterSpacing:1, marginBottom:8}}>🙏 기도 제목</div>
+            <textarea value={qt.prayer} onChange={e => setQt({...qt, prayer:e.target.value})} placeholder="오늘의 기도 제목을 적어보세요..." rows={3} style={{width:"100%", background:P.bg, border:`1px solid ${P.border}`, borderRadius:8, color:P.text, fontSize:13, outline:"none", fontFamily:"inherit", padding:"9px 12px", resize:"none", lineHeight:1.8, boxSizing:"border-box"}}/>
+          </div>
+        </div>
+
         {/* 구글 캘린더 일정 */}
         {dayEvents.length > 0 && (
           <div style={{background:P.surface, borderRadius:12, padding:14, border:`1px solid ${P.goldMid}`}}>
