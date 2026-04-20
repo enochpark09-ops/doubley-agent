@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import CalendarTab from "./CalendarTab.jsx";
+import PlannerTab from "./PlannerTab.jsx";
 
 const C = {
   bg: "#1a1a18", surface: "#242422", surface2: "#2a2a27", border: "#3a3a36",
@@ -146,62 +147,6 @@ const AssistantTab = ({ todos, setTodos }) => {
           </div>
         </div>
       )}
-    </div>
-  );
-};
-
-// ── 플래너(PDF) 탭 ────────────────────────────────────────────
-const PlannerTab = () => {
-  const [pdfUrl, setPdfUrl] = useState(null);
-  const [pdfName, setPdfName] = useState("");
-  const [page, setPage] = useState(1);
-  const [dragging, setDragging] = useState(false);
-  const fileRef = useRef(null);
-
-  const handleFile = (file) => {
-    if (!file||file.type!=="application/pdf") { alert("PDF 파일만 가능해요!"); return; }
-    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    setPdfUrl(URL.createObjectURL(file)); setPdfName(file.name); setPage(1);
-  };
-
-  if (!pdfUrl) return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, gap:20 }}>
-      <div style={{ fontSize:48 }}>📓</div>
-      <div style={{ textAlign:"center" }}>
-        <div style={{ fontSize:17, fontWeight:700, color:C.text, marginBottom:8 }}>디지털 플래너</div>
-        <div style={{ fontSize:13, color:C.textMuted, lineHeight:1.6 }}>GoodNotes PDF 파일을 업로드하면<br/>앱에서 바로 볼 수 있어요</div>
-      </div>
-      <div onDragOver={e=>{e.preventDefault();setDragging(true);}} onDragLeave={()=>setDragging(false)} onDrop={e=>{e.preventDefault();setDragging(false);handleFile(e.dataTransfer.files[0]);}} onClick={()=>fileRef.current?.click()}
-        style={{ width:"100%", maxWidth:320, border:`2px dashed ${dragging?C.gold:C.border}`, borderRadius:16, padding:"32px 20px", textAlign:"center", cursor:"pointer", background:dragging?C.goldDim:C.surface, transition:"all .2s" }}>
-        <div style={{ marginBottom:10, color:dragging?C.gold:C.textMuted }}><Ic n="upload" s={36}/></div>
-        <div style={{ fontSize:14, color:dragging?C.gold:C.textMuted }}>{dragging?"여기에 놓으세요!":"탭하거나 파일을 드래그하세요"}</div>
-        <div style={{ fontSize:11, color:C.textDim, marginTop:6 }}>PDF 파일만 가능</div>
-      </div>
-      <input ref={fileRef} type="file" accept=".pdf" onChange={e=>handleFile(e.target.files[0])} style={{ display:"none" }}/>
-      <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:16, width:"100%", maxWidth:320 }}>
-        <div style={{ fontSize:11, color:C.gold, fontWeight:700, marginBottom:8 }}>💡 사용 방법</div>
-        <div style={{ fontSize:12, color:C.textMuted, lineHeight:1.8 }}>1. Double Y 디지털 플래너 PDF 저장<br/>2. 위 버튼으로 업로드<br/>3. 앱에서 바로 열람<br/>4. 페이지 넘기기로 이동</div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-      <div style={{ padding:"10px 14px", background:C.surface, borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:10, flexShrink:0 }}>
-        <div style={{ flex:1, fontSize:12, color:C.textMuted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>📄 {pdfName}</div>
-        <button onClick={()=>{URL.revokeObjectURL(pdfUrl);setPdfUrl(null);setPdfName("");}} style={{ background:C.redDim, border:`1px solid ${C.red}44`, borderRadius:7, padding:"5px 10px", color:C.red, cursor:"pointer", fontSize:11, fontFamily:"inherit", display:"flex", alignItems:"center", gap:4 }}><Ic n="close" s={12}/> 닫기</button>
-      </div>
-      <div style={{ flex:1, overflow:"hidden" }}>
-        <iframe src={`${pdfUrl}#page=${page}&toolbar=0&navpanes=0`} style={{ width:"100%", height:"100%", border:"none", background:C.bg }} title="PDF"/>
-      </div>
-      <div style={{ padding:"10px 14px", background:C.surface, borderTop:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"center", gap:16, flexShrink:0, paddingBottom:"env(safe-area-inset-bottom,10px)" }}>
-        <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page<=1} style={{ width:40, height:40, borderRadius:10, background:page>1?C.goldDim:C.border, border:`1px solid ${page>1?C.gold:C.border}`, color:page>1?C.gold:C.textDim, cursor:page>1?"pointer":"not-allowed", display:"flex", alignItems:"center", justifyContent:"center" }}><Ic n="chevL" s={18}/></button>
-        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-          <input type="number" value={page} min={1} onChange={e=>setPage(Math.max(1,parseInt(e.target.value)||1))} style={{ width:48, textAlign:"center", background:C.bg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"6px 4px", fontSize:14, outline:"none", fontFamily:"inherit" }}/>
-          <span style={{ fontSize:12, color:C.textDim }}>페이지</span>
-        </div>
-        <button onClick={()=>setPage(p=>p+1)} style={{ width:40, height:40, borderRadius:10, background:C.goldDim, border:`1px solid ${C.gold}`, color:C.gold, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}><Ic n="chevR" s={18}/></button>
-      </div>
     </div>
   );
 };
@@ -367,6 +312,7 @@ const StrategyTab = () => {
 // ── 메인 앱 ───────────────────────────────────────────────────
 export default function App() {
   const [tab, setTab] = useState("assistant");
+  const [gcalEvents, setGcalEvents] = useState([]);
   const [todos, setTodos] = useState([
     {id:1,text:"커피앱 최종 테스트",done:false},
     {id:2,text:"Suno 40곡 DistroKid 업로드",done:false},
@@ -390,8 +336,8 @@ export default function App() {
       </div>
       <div style={{ flex:1, overflow:"hidden", display:"flex", flexDirection:"column" }}>
         {tab==="assistant"&&<AssistantTab todos={todos} setTodos={setTodos}/>}
-        {tab==="calendar"&&<CalendarTab/>}
-        {tab==="planner"&&<PlannerTab/>}
+        {tab==="calendar"&&<CalendarTab onEventsLoaded={setGcalEvents}/>}
+        {tab==="planner"&&<PlannerTab gcalEvents={gcalEvents}/>}
         {tab==="dashboard"&&<DashboardTab/>}
         {tab==="strategy"&&<StrategyTab/>}
       </div>
