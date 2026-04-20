@@ -1,4 +1,5 @@
-  import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
+import CalendarTab from "./CalendarTab.jsx";
 
 const C = {
   bg: "#1a1a18", surface: "#242422", surface2: "#2a2a27", border: "#3a3a36",
@@ -6,9 +7,6 @@ const C = {
   text: "#e8e4dc", textMuted: "#9a9690", textDim: "#6a6660",
   green: "#6dcc7a", greenDim: "#6dcc7a22", red: "#e07070", redDim: "#e0707022", blue: "#7aabcc", blueDim: "#7aabcc22",
 };
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-const GOOGLE_SCOPES = "https://www.googleapis.com/auth/calendar";
 
 const callClaude = async (messages, system, max_tokens = 1000) => {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -20,23 +18,6 @@ const callClaude = async (messages, system, max_tokens = 1000) => {
   if (!res.ok) throw new Error("API Error");
   const data = await res.json();
   return data.content?.[0]?.text || "";
-};
-
-const gcal = {
-  async getEvents(token) {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const end = new Date(now.getFullYear(), now.getMonth() + 2, 0).toISOString();
-    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${start}&timeMax=${end}&singleEvents=true&orderBy=startTime&maxResults=50`, { headers: { Authorization: `Bearer ${token}` } });
-    return (await res.json()).items || [];
-  },
-  async addEvent(token, event) {
-    const res = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(event) });
-    return res.json();
-  },
-  async deleteEvent(token, id) {
-    await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
-  },
 };
 
 const Ic = ({ n, s = 16 }) => {
@@ -165,166 +146,6 @@ const AssistantTab = ({ todos, setTodos }) => {
           </div>
         </div>
       )}
-    </div>
-  );
-};
-
-// ── 구글 캘린더 탭 ────────────────────────────────────────────
-const CalendarTab = () => {
-  const [token, setToken] = useState(null);
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [newEvent, setNewEvent] = useState({ title:"", date:"", time:"", endTime:"" });
-  const [error, setError] = useState("");
-  const hasClientId = GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID.length > 10;
-
-  const signIn = () => {
-    if (!hasClientId) { setError("VITE_GOOGLE_CLIENT_ID 환경변수를 설정해주세요."); return; }
-    const params = new URLSearchParams({ client_id:GOOGLE_CLIENT_ID, redirect_uri:window.location.origin, response_type:"token", scope:GOOGLE_SCOPES, prompt:"select_account" });
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-  };
-
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.includes("access_token")) {
-      const t = new URLSearchParams(hash.substring(1)).get("access_token");
-      if (t) { setToken(t); window.history.replaceState(null,"",window.location.pathname); }
-    }
-  }, []);
-
-  useEffect(() => { if (token) loadEvents(); }, [token]);
-
-  const loadEvents = async () => {
-    setLoading(true);
-    try { setEvents(await gcal.getEvents(token)); }
-    catch { setError("일정 로드 실패. 다시 로그인해주세요."); setToken(null); }
-    setLoading(false);
-  };
-
-  const year=currentDate.getFullYear(), month=currentDate.getMonth();
-  const firstDay=new Date(year,month,1).getDay(), daysInMonth=new Date(year,month+1,0).getDate();
-  const today=new Date();
-
-  const getDayEvents = (day) => {
-    const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    return events.filter(e=>(e.start?.date||e.start?.dateTime?.substring(0,10))===ds);
-  };
-
-  const addEvent = async () => {
-    if (!newEvent.title||!newEvent.date) return;
-    setLoading(true);
-    try {
-      const ev = newEvent.time
-        ? { summary:newEvent.title, start:{dateTime:`${newEvent.date}T${newEvent.time}:00`,timeZone:"Asia/Seoul"}, end:{dateTime:`${newEvent.date}T${newEvent.endTime||newEvent.time}:00`,timeZone:"Asia/Seoul"} }
-        : { summary:newEvent.title, start:{date:newEvent.date}, end:{date:newEvent.date} };
-      await gcal.addEvent(token, ev);
-      await loadEvents();
-      setShowForm(false); setNewEvent({title:"",date:"",time:"",endTime:""});
-    } catch { setError("일정 추가 실패"); }
-    setLoading(false);
-  };
-
-  const deleteEvent = async (id) => {
-    if (!confirm("삭제할까요?")) return;
-    setLoading(true);
-    try { await gcal.deleteEvent(token, id); await loadEvents(); }
-    catch { setError("삭제 실패"); }
-    setLoading(false);
-  };
-
-  if (!token) return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:24, gap:20 }}>
-      <div style={{ fontSize:48 }}>📅</div>
-      <div style={{ textAlign:"center" }}>
-        <div style={{ fontSize:17, fontWeight:700, color:C.text, marginBottom:8 }}>구글 캘린더 연동</div>
-        <div style={{ fontSize:13, color:C.textMuted, lineHeight:1.6 }}>Google 계정으로 로그인하면<br/>실제 일정을 읽고 쓸 수 있어요</div>
-      </div>
-      {error && <div style={{ fontSize:12, color:C.red, background:C.redDim, padding:"10px 16px", borderRadius:8, textAlign:"center" }}>{error}</div>}
-      {!hasClientId ? (
-        <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, padding:18, width:"100%", maxWidth:320 }}>
-          <div style={{ fontSize:12, color:C.gold, fontWeight:700, marginBottom:10 }}>⚙️ Google Client ID 설정 필요</div>
-          <div style={{ fontSize:12, color:C.textMuted, lineHeight:1.8 }}>
-            Vercel 환경변수에 추가:<br/>
-            <code style={{ color:C.gold, background:C.bg, padding:"2px 6px", borderRadius:4 }}>VITE_GOOGLE_CLIENT_ID</code><br/><br/>
-            발급: Google Cloud Console<br/>→ APIs & Services → Credentials<br/>→ OAuth 2.0 Client ID 생성
-          </div>
-        </div>
-      ) : (
-        <button onClick={signIn} style={{ display:"flex", alignItems:"center", gap:10, padding:"14px 24px", background:"#fff", border:"none", borderRadius:12, cursor:"pointer", fontSize:15, fontWeight:600, color:"#1a1a18", fontFamily:"inherit", boxShadow:"0 2px 8px rgba(0,0,0,.3)" }}>
-          <Ic n="google" s={20}/> Google로 로그인
-        </button>
-      )}
-    </div>
-  );
-
-  const selEvents = selectedDay ? getDayEvents(selectedDay) : [];
-
-  return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-      <div style={{ padding:"12px 16px", background:C.surface, borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
-        <button onClick={()=>setCurrentDate(new Date(year,month-1,1))} style={{ background:"none", border:"none", color:C.textMuted, cursor:"pointer", padding:6 }}><Ic n="chevL" s={18}/></button>
-        <div style={{ fontSize:15, fontWeight:700, color:C.gold }}>{currentDate.toLocaleDateString("ko-KR",{year:"numeric",month:"long"})}</div>
-        <button onClick={()=>setCurrentDate(new Date(year,month+1,1))} style={{ background:"none", border:"none", color:C.textMuted, cursor:"pointer", padding:6 }}><Ic n="chevR" s={18}/></button>
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", background:C.surface, borderBottom:`1px solid ${C.border}`, flexShrink:0 }}>
-        {["일","월","화","수","목","금","토"].map((d,i) => (
-          <div key={d} style={{ textAlign:"center", padding:"8px 0", fontSize:11, color:i===0?C.red:i===6?C.blue:C.textDim, fontWeight:600 }}>{d}</div>
-        ))}
-      </div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", flex:1, overflow:"hidden" }}>
-        {Array.from({length:firstDay}).map((_,i) => <div key={`e${i}`} style={{ borderRight:`1px solid ${C.border}`, borderBottom:`1px solid ${C.border}` }}/>)}
-        {Array.from({length:daysInMonth}).map((_,i) => {
-          const day=i+1, isToday=day===today.getDate()&&month===today.getMonth()&&year===today.getFullYear(), isSel=day===selectedDay, evs=getDayEvents(day), col=(firstDay+i)%7;
-          return (
-            <div key={day} onClick={()=>setSelectedDay(isSel?null:day)} style={{ borderRight:`1px solid ${C.border}`, borderBottom:`1px solid ${C.border}`, padding:"4px 3px", cursor:"pointer", minHeight:44, background:isSel?C.goldDim:"transparent" }}>
-              <div style={{ width:24, height:24, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", background:isToday?C.gold:"transparent", color:isToday?"#1a1a18":col===0?C.red:col===6?C.blue:C.text, fontSize:12, fontWeight:isToday?700:400, margin:"0 auto 2px" }}>{day}</div>
-              {evs.slice(0,2).map((ev,ei) => <div key={ei} style={{ fontSize:9, color:"#1a1a18", background:C.gold, borderRadius:3, padding:"1px 3px", marginBottom:1, overflow:"hidden", whiteSpace:"nowrap", textOverflow:"ellipsis" }}>{ev.summary}</div>)}
-              {evs.length>2 && <div style={{ fontSize:9, color:C.textDim }}>+{evs.length-2}</div>}
-            </div>
-          );
-        })}
-      </div>
-      {selectedDay && (
-        <div style={{ borderTop:`1px solid ${C.border}`, background:C.surface, maxHeight:200, overflowY:"auto", flexShrink:0 }}>
-          <div style={{ padding:"10px 14px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-            <div style={{ fontSize:12, color:C.gold, fontWeight:700 }}>{month+1}월 {selectedDay}일</div>
-            <button onClick={()=>{setNewEvent({...newEvent,date:`${year}-${String(month+1).padStart(2,"0")}-${String(selectedDay).padStart(2,"0")}`});setShowForm(true);}} style={{ background:C.goldDim, border:`1px solid ${C.gold}`, borderRadius:7, padding:"5px 10px", color:C.gold, cursor:"pointer", fontSize:11, fontFamily:"inherit", fontWeight:600, display:"flex", alignItems:"center", gap:4 }}><Ic n="plus" s={12}/> 추가</button>
-          </div>
-          {selEvents.length===0 ? <div style={{ padding:"0 14px 12px", fontSize:12, color:C.textDim }}>일정 없음</div>
-            : selEvents.map(ev => (
-              <div key={ev.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 14px", borderTop:`1px solid ${C.border}` }}>
-                <div style={{ width:4, height:32, borderRadius:2, background:C.gold, flexShrink:0 }}/>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13, color:C.text }}>{ev.summary}</div>
-                  <div style={{ fontSize:11, color:C.textDim }}>{ev.start?.dateTime?new Date(ev.start.dateTime).toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit"}):"종일"}</div>
-                </div>
-                <button onClick={()=>deleteEvent(ev.id)} style={{ background:"none", border:"none", cursor:"pointer", color:C.textDim, padding:4 }}><Ic n="trash" s={14}/></button>
-              </div>
-            ))
-          }
-        </div>
-      )}
-      {showForm && (
-        <div style={{ position:"fixed", inset:0, background:"#000a", zIndex:100, display:"flex", alignItems:"flex-end" }}>
-          <div style={{ width:"100%", background:C.surface, borderRadius:"20px 20px 0 0", padding:20, paddingBottom:"calc(20px + env(safe-area-inset-bottom,0px))" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-              <div style={{ fontSize:15, fontWeight:700, color:C.text }}>일정 추가</div>
-              <button onClick={()=>setShowForm(false)} style={{ background:"none", border:"none", color:C.textMuted, cursor:"pointer" }}><Ic n="close" s={20}/></button>
-            </div>
-            {[{label:"제목 *",key:"title",type:"text",placeholder:"일정 제목"},{label:"날짜 *",key:"date",type:"date"},{label:"시작 시간",key:"time",type:"time"},{label:"종료 시간",key:"endTime",type:"time"}].map(f => (
-              <div key={f.key} style={{ marginBottom:12 }}>
-                <div style={{ fontSize:11, color:C.textDim, marginBottom:4 }}>{f.label}</div>
-                <input type={f.type} value={newEvent[f.key]} onChange={e=>setNewEvent({...newEvent,[f.key]:e.target.value})} placeholder={f.placeholder||""} style={{ width:"100%", background:C.bg, border:`1px solid ${C.border}`, borderRadius:8, color:C.text, padding:"10px 12px", fontSize:14, outline:"none", fontFamily:"inherit", colorScheme:"dark" }}/>
-              </div>
-            ))}
-            <button onClick={addEvent} disabled={!newEvent.title||!newEvent.date||loading} style={{ width:"100%", padding:"13px 0", background:newEvent.title&&newEvent.date?`linear-gradient(135deg,${C.bronze},${C.gold})`:C.border, border:"none", borderRadius:10, color:newEvent.title&&newEvent.date?"#1a1a18":C.textDim, fontSize:15, fontWeight:700, cursor:newEvent.title&&newEvent.date?"pointer":"not-allowed", fontFamily:"inherit" }}>{loading?"저장 중...":"저장"}</button>
-          </div>
-        </div>
-      )}
-      {loading && <div style={{ position:"fixed", inset:0, background:"#0006", zIndex:50, display:"flex", alignItems:"center", justifyContent:"center" }}><div style={{ animation:"spin 1s linear infinite", color:C.gold }}><Ic n="spin" s={36}/></div></div>}
     </div>
   );
 };
