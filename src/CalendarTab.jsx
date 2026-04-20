@@ -56,7 +56,7 @@ const loadGoogleScript = () => new Promise((resolve) => {
   document.head.appendChild(script);
 });
 
-export default function CalendarTab() {
+export default function CalendarTab({ onEventsLoaded }) {
   const [token, setToken] = useState(null);
   const [userEmail, setUserEmail] = useState("");
   const [events, setEvents] = useState([]);
@@ -118,7 +118,7 @@ export default function CalendarTab() {
 
   const loadEvents = async () => {
     setLoading(true); setError("");
-    try { setEvents(await gcal.getEvents(token)); }
+    try { const evs = await gcal.getEvents(token); setEvents(evs); if (onEventsLoaded) onEventsLoaded(evs); }
     catch { setError("일정 로드 실패. 다시 로그인해주세요."); signOut(); }
     setLoading(false);
   };
