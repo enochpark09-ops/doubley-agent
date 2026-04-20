@@ -52,6 +52,30 @@ const BottomTab = ({ active, onClick, icon, label }) => (
   </button>
 );
 
+// ── 체크리스트 헬퍼 ──────────────────────────────────────────
+const todayStr = () => new Date().toISOString().split("T")[0];
+const FIXED_ITEMS = [
+  { id:"qt",      emoji:"✝️", label:"QT" },
+  { id:"prayer",  emoji:"🙏", label:"기도 30분" },
+  { id:"workout", emoji:"🏃", label:"새벽운동" },
+  { id:"stock",   emoji:"📈", label:"주식블로그 3개 작성" },
+  { id:"novel",   emoji:"📖", label:"웹소설" },
+  { id:"music",   emoji:"🎵", label:"음원만들기" },
+  { id:"sports",  emoji:"⚽", label:"스포츠블로그 1개 작성" },
+  { id:"youtube", emoji:"🎬", label:"정치유튜브 1개 제작" },
+];
+const loadCL = () => { try { const s=JSON.parse(localStorage.getItem("cl_v1")||"{}"); return s.date===todayStr()?s:null; } catch { return null; } };
+const saveCL = (d) => { try { localStorage.setItem("cl_v1", JSON.stringify({...d,date:todayStr()})); } catch {} };
+const getPlannerData = () => {
+  const d = todayStr();
+  const top3 = (() => { try { return JSON.parse(localStorage.getItem(`planner_top3_${d}`)||"[]"); } catch { return []; } })();
+  const todos = (() => { try { return JSON.parse(localStorage.getItem(`planner_todos_${d}`)||"[]"); } catch { return []; } })();
+  return [
+    ...top3.filter(t=>t).map((t,i)=>({id:`p_top_${i}`,emoji:"📌",label:t})),
+    ...todos.filter(t=>t.text).map((t,i)=>({id:`p_todo_${i}`,emoji:"✅",label:t.text})),
+  ];
+};
+
 // ── AI 비서 탭 ────────────────────────────────────────────────
 const AssistantTab = ({ todos, setTodos }) => {
   const [messages, setMessages] = useState([{ role:"assistant", content:"안녕하세요, Enoch님! 🌙\nDouble Y Space AI 비서입니다.\n일정·할일·사업 조언 무엇이든 말씀해 주세요. 🎤 음성 입력도 가능해요!" }]);
@@ -62,6 +86,20 @@ const AssistantTab = ({ todos, setTodos }) => {
   const [view, setView] = useState("chat");
   const chatRef = useRef(null);
   const recRef = useRef(null);
+
+  // ── 체크리스트 ────────────────────────────────────────────
+  const [clFixed, setClFixed] = useState(() => loadCL()?.fixed || {});
+  const [clPlanner, setClPlanner] = useState(() => loadCL()?.planner || {});
+  const [plannerItems, setPlannerItems] = useState(getPlannerData);
+  const clTotal = FIXED_ITEMS.length + plannerItems.length;
+  const clDone = Object.values(clFixed).filter(Boolean).length + Object.values(clPlanner).filter(Boolean).length;
+  const clPct = clTotal > 0 ? Math.round(clDone/clTotal*100) : 0;
+
+  useEffect(() => { saveCL({fixed:clFixed, planner:clPlanner}); }, [clFixed, clPlanner]);
+  useEffect(() => { if(view==="checklist") setPlannerItems(getPlannerData()); }, [view]);
+
+  const toggleCLFixed = id => setClFixed(p=>({...p,[id]:!p[id]}));
+  const toggleCLPlanner = id => setClPlanner(p=>({...p,[id]:!p[id]}));
 
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -94,8 +132,8 @@ const AssistantTab = ({ todos, setTodos }) => {
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
       <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`, background:C.surface, flexShrink:0 }}>
-        {[["chat","💬 대화"],["todos","✅ 할일"],["schedule","📅 루틴"]].map(([id,label]) => (
-          <button key={id} onClick={()=>setView(id)} style={{ flex:1, padding:"10px 0", background:"transparent", border:"none", borderBottom:`2px solid ${view===id?C.gold:"transparent"}`, color:view===id?C.gold:C.textMuted, fontSize:12, fontFamily:"inherit", cursor:"pointer", fontWeight:view===id?600:400 }}>{label}</button>
+        {[["chat","💬 대화"],["checklist",`☑️ 체크리스트`],["todos","✅ 할일"],["schedule","📅 루틴"]].map(([id,label]) => (
+          <button key={id} onClick={()=>setView(id)} style={{ flex:1, padding:"10px 0", background:"transparent", border:"none", borderBottom:`2px solid ${view===id?C.gold:"transparent"}`, color:view===id?C.gold:C.textMuted, fontSize:11, fontFamily:"inherit", cursor:"pointer", fontWeight:view===id?600:400 }}>{label}</button>
         ))}
       </div>
 
@@ -130,6 +168,58 @@ const AssistantTab = ({ todos, setTodos }) => {
               <button onClick={()=>setTodos(todos.filter(x=>x.id!==t.id))} style={{ background:"none", border:"none", cursor:"pointer", color:C.textDim, padding:4 }}><Ic n="trash" s={15}/></button>
             </div>
           ))}
+        </div>
+      )}
+
+      {view==="checklist" && (
+        <div style={{ flex:1, overflowY:"auto", padding:14 }}>
+          {/* 진행률 바 */}
+          <div style={{ background:C.surface, borderRadius:12, padding:14, marginBottom:14, border:`1px solid ${C.border}` }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+              <div style={{ fontSize:12, fontWeight:700, color:C.text }}>오늘의 달성률</div>
+              <div style={{ fontSize:20, fontWeight:800, color:clPct===100?C.green:C.gold }}>{clPct}%</div>
+            </div>
+            <div style={{ height:8, background:C.border, borderRadius:4 }}>
+              <div style={{ height:"100%", borderRadius:4, background:clPct===100?`linear-gradient(90deg,${C.green},#4aff7a)`:`linear-gradient(90deg,${C.bronze},${C.gold})`, width:`${clPct}%`, transition:"width .5s ease" }}/>
+            </div>
+            <div style={{ fontSize:11, color:C.textDim, marginTop:6, textAlign:"center" }}>{clDone} / {clTotal} 완료 {clPct===100?"🎉 오늘 하루 완주!":""}</div>
+          </div>
+
+          {/* 플래너 연동 항목 */}
+          {plannerItems.length > 0 && (
+            <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:10, color:C.gold, fontWeight:700, letterSpacing:1, marginBottom:8, display:"flex", alignItems:"center", gap:6 }}>
+                📋 플래너 연동 <span style={{ color:C.textDim, fontWeight:400 }}>({plannerItems.filter(p=>clPlanner[p.id]).length}/{plannerItems.length})</span>
+              </div>
+              {plannerItems.map(item => (
+                <div key={item.id} onClick={()=>toggleCLPlanner(item.id)}
+                  style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 14px", marginBottom:6, background:C.surface, borderRadius:10, border:`1px solid ${clPlanner[item.id]?C.gold+"55":C.border}`, cursor:"pointer", WebkitTapHighlightColor:"transparent", opacity:clPlanner[item.id]?0.7:1 }}>
+                  <div style={{ width:22, height:22, borderRadius:5, border:`2px solid ${clPlanner[item.id]?C.gold:C.border}`, background:clPlanner[item.id]?C.gold:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:"#1a1a18" }}>
+                    {clPlanner[item.id] && <Ic n="check" s={13}/>}
+                  </div>
+                  <span style={{ fontSize:11, marginRight:2 }}>{item.emoji}</span>
+                  <span style={{ flex:1, fontSize:13, color:clPlanner[item.id]?C.textDim:C.text, textDecoration:clPlanner[item.id]?"line-through":"none" }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 고정 항목 */}
+          <div>
+            <div style={{ fontSize:10, color:C.gold, fontWeight:700, letterSpacing:1, marginBottom:8, display:"flex", alignItems:"center", gap:6 }}>
+              ⭐ 고정 루틴 <span style={{ color:C.textDim, fontWeight:400 }}>({Object.values(clFixed).filter(Boolean).length}/{FIXED_ITEMS.length})</span>
+            </div>
+            {FIXED_ITEMS.map(item => (
+              <div key={item.id} onClick={()=>toggleCLFixed(item.id)}
+                style={{ display:"flex", alignItems:"center", gap:12, padding:"13px 14px", marginBottom:6, background:C.surface, borderRadius:10, border:`1px solid ${clFixed[item.id]?C.gold+"55":C.border}`, cursor:"pointer", WebkitTapHighlightColor:"transparent", opacity:clFixed[item.id]?0.7:1, transition:"all .15s" }}>
+                <div style={{ width:22, height:22, borderRadius:5, border:`2px solid ${clFixed[item.id]?C.gold:C.border}`, background:clFixed[item.id]?C.gold:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:"#1a1a18" }}>
+                  {clFixed[item.id] && <Ic n="check" s={13}/>}
+                </div>
+                <span style={{ fontSize:15 }}>{item.emoji}</span>
+                <span style={{ flex:1, fontSize:14, color:clFixed[item.id]?C.textDim:C.text, textDecoration:clFixed[item.id]?"line-through":"none" }}>{item.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
