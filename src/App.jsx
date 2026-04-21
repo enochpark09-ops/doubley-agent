@@ -11,12 +11,21 @@ const C = {
 
 const callClaude = async (messages, system, max_tokens = 1000) => {
   const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("API_KEY_MISSING");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...(apiKey ? { "x-api-key": apiKey } : {}) },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
     body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens, system, messages }),
   });
-  if (!res.ok) throw new Error("API Error");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+  }
   const data = await res.json();
   return data.content?.[0]?.text || "";
 };
@@ -125,15 +134,23 @@ const AssistantTab = ({ todos, setTodos }) => {
     try {
       const reply = await callClaude(newMsgs.map(m=>({role:m.role,content:m.content})), `당신은 Enoch의 AI 비서. Double Y Space(성남): 스마트스토어·웹소설·Suno·커피앱 운영중. 할일: ${todos.map(t=>`[${t.done?"완료":"미완"}]${t.text}`).join(",")}. 친근하게 3~5문장 한국어.`);
       setMessages([...newMsgs, { role:"assistant", content:reply }]);
-    } catch { setMessages([...newMsgs, { role:"assistant", content:"⚠️ 오류가 발생했습니다." }]); }
+    } catch(e) {
+      const msg = e.message === "API_KEY_MISSING"
+        ? "⚠️ API 키가 설정되지 않았습니다.
+Vercel → Settings → Environment Variables에서
+VITE_ANTHROPIC_API_KEY를 추가해주세요."
+        : `⚠️ 오류: ${e.message}
+잠시 후 다시 시도해 주세요.`;
+      setMessages([...newMsgs, { role:"assistant", content:msg }]);
+    }
     setLoading(false);
   };
 
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
       <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`, background:C.surface, flexShrink:0 }}>
-        {[["chat","💬 대화"],["checklist",`☑️ 체크리스트`],["todos","✅ 할일"],["schedule","📅 루틴"]].map(([id,label]) => (
-          <button key={id} onClick={()=>setView(id)} style={{ flex:1, padding:"10px 0", background:"transparent", border:"none", borderBottom:`2px solid ${view===id?C.gold:"transparent"}`, color:view===id?C.gold:C.textMuted, fontSize:11, fontFamily:"inherit", cursor:"pointer", fontWeight:view===id?600:400 }}>{label}</button>
+        {[["chat","💬 대화"],["checklist","☑️ 체크리스트"],["todos","✅ 할일"]].map(([id,label]) => (
+          <button key={id} onClick={()=>setView(id)} style={{ flex:1, padding:"10px 0", background:"transparent", border:"none", borderBottom:`2px solid ${view===id?C.gold:"transparent"}`, color:view===id?C.gold:C.textMuted, fontSize:12, fontFamily:"inherit", cursor:"pointer", fontWeight:view===id?600:400 }}>{label}</button>
         ))}
       </div>
 
@@ -222,15 +239,6 @@ const AssistantTab = ({ todos, setTodos }) => {
           </div>
         </div>
       )}
-
-      {view==="schedule" && (
-        <div style={{ flex:1, overflowY:"auto", padding:14 }}>
-          {[{time:"06–08시",label:"새벽 창작",color:C.gold},{time:"09–15시",label:"스토어 운영",color:C.bronze},{time:"19–21시",label:"야간 업무",color:C.blue}].map((s,i) => (
-            <div key={i} style={{ display:"flex", gap:14, padding:14, marginBottom:10, background:C.surface, borderRadius:12, border:`1px solid ${C.border}`, alignItems:"center" }}>
-              <div style={{ width:4, height:44, borderRadius:2, background:s.color, flexShrink:0 }}/>
-              <div><div style={{ fontSize:12, color:C.textDim, marginBottom:4 }}>{s.time}</div><div style={{ fontSize:15, fontWeight:600, color:C.text }}>{s.label}</div></div>
-            </div>
-          ))}
           <div style={{ background:C.goldDim, borderRadius:12, padding:14, border:`1px solid ${C.gold}44` }}>
             <div style={{ fontSize:11, color:C.gold, fontWeight:700, marginBottom:6 }}>오늘의 집중 목표</div>
             <div style={{ fontSize:13, color:C.text, lineHeight:1.6 }}>{todos.filter(t=>!t.done).slice(0,3).map(t=>`• ${t.text}`).join("\n")||"모든 할일 완료! 🎉"}</div>
@@ -415,7 +423,6 @@ export default function App() {
     {id:"calendar",icon:<Ic n="cal" s={18}/>,label:"캘린더"},
     {id:"planner",icon:<Ic n="pdf" s={18}/>,label:"플래너"},
     {id:"dashboard",icon:<Ic n="chart" s={18}/>,label:"사업현황"},
-    {id:"strategy",icon:<Ic n="strategy" s={18}/>,label:"전략기획"},
   ];
 
   return (
@@ -429,7 +436,6 @@ export default function App() {
         {tab==="calendar"&&<CalendarTab onEventsLoaded={setGcalEvents}/>}
         {tab==="planner"&&<PlannerTab gcalEvents={gcalEvents}/>}
         {tab==="dashboard"&&<DashboardTab/>}
-        {tab==="strategy"&&<StrategyTab/>}
       </div>
       <div style={{ background:C.surface, borderTop:`1px solid ${C.border}`, display:"flex", flexShrink:0, paddingBottom:"env(safe-area-inset-bottom,0px)" }}>
         {tabs.map(t=><BottomTab key={t.id} active={tab===t.id} onClick={()=>setTab(t.id)} icon={t.icon} label={t.label}/>)}
