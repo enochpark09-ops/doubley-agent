@@ -20,7 +20,7 @@ const callClaude = async (messages, system, max_tokens = 1000) => {
       "anthropic-version": "2023-06-01",
       "anthropic-dangerous-direct-browser-access": "true",
     },
-    body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens, system, messages }),
+    body: JSON.stringify({ model: "claude-sonnet-4-5-20251001", max_tokens, system, messages }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
