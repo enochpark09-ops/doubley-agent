@@ -101,9 +101,15 @@ const DayPage = ({ date, onBack, gcalEvents }) => {
     setQtAiResult("");
     try {
       const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+      if (!apiKey) { setQtAiResult("⚠️ API 키가 설정되지 않았습니다."); setQtAiLoading(false); return; }
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(apiKey ? {"x-api-key": apiKey} : {}) },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey || "",
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
         body: JSON.stringify({
           model: "claude-sonnet-4-5-20250929",
           max_tokens: 600,
@@ -119,7 +125,8 @@ Enoch님은 개인사업자로 바쁜 일상 속에서 매일 QT를 실천하고
       });
       const data = await res.json();
       setQtAiResult(data.content?.[0]?.text || "");
-    } catch { setQtAiResult("AI 묵상 도움을 불러오지 못했습니다."); }
+    } catch(e) { setQtAiResult(`⚠️ 오류: ${e.message}
+잠시 후 다시 시도해 주세요.`); }
     setQtAiLoading(false);
   };
 
