@@ -105,7 +105,7 @@ const DayPage = ({ date, onBack, gcalEvents }) => {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(apiKey ? {"x-api-key": apiKey} : {}) },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-sonnet-4-5-20251001",
           max_tokens: 600,
           system: `당신은 기독교 QT(경건의 시간) 묵상을 도와주는 AI입니다. 
 Enoch님은 개인사업자로 바쁜 일상 속에서 매일 QT를 실천하고 있습니다.
