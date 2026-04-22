@@ -556,7 +556,15 @@ export default function App() {
   const [tab, setTab] = useState("assistant");
   const [gcalEvents, setGcalEvents] = useState([]);
   // 2번 수정: 구글 캘린더 토큰 영구 유지 (sessionStorage → 앱 전역 state)
-  const [gcalToken, setGcalToken] = useState(() => sessionStorage.getItem("gtoken") || null);
+  const [gcalToken, setGcalToken] = useState(() => {
+    // 앱 시작 시 sessionStorage에서 토큰 복원 → 백업탭 즉시 사용 가능
+    return sessionStorage.getItem("gtoken") || null;
+  });
+  const handleTokenChange = (t) => {
+    setGcalToken(t);
+    if (t) sessionStorage.setItem("gtoken", t);
+    else sessionStorage.removeItem("gtoken");
+  };
   const [todos, setTodos] = useState([]);
 
   const tabs = [
@@ -581,7 +589,7 @@ export default function App() {
       </div>
       <div style={{ flex:1,overflow:"hidden",display:"flex",flexDirection:"column" }}>
         {tab==="assistant" && <AssistantTab todos={todos} setTodos={setTodos}/>}
-        {tab==="calendar"  && <CalendarTab onEventsLoaded={setGcalEvents} externalToken={gcalToken} onTokenChange={setGcalToken}/>}
+        {tab==="calendar"  && <CalendarTab onEventsLoaded={setGcalEvents} externalToken={gcalToken} onTokenChange={handleTokenChange}/>}
         {tab==="planner"   && <PlannerTab gcalEvents={gcalEvents}/>}
         {tab==="dashboard" && <DashboardTab/>}
         {tab==="backup"    && <BackupTab gcalToken={gcalToken}/>}
