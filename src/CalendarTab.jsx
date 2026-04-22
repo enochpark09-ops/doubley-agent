@@ -90,7 +90,7 @@ export default function CalendarTab({ onEventsLoaded, externalToken, onTokenChan
       await loadGoogleScript();
       const client = window.google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
-        scope: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/userinfo.email",
+        scope: "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email",
         callback: async (response) => {
           if (response.error) { setError("로그인 실패: " + response.error); return; }
           const t = response.access_token;
