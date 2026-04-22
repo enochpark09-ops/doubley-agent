@@ -19,12 +19,8 @@ const getWeekDates = (weekStart) => {
   });
 };
 
-// KST 기준 날짜 문자열
-const todayKST = () => {
-  const d = new Date();
-  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
-  return kst.toISOString().split("T")[0];
-};
+// 로컬 날짜 (사용 안 됨 - dateToStr 사용)
+// const todayKST = () => dateToStr(new Date());
 
 const getWeekStart = (date) => {
   const d = new Date(date);
@@ -54,6 +50,15 @@ const TIME_BLOCKS = [
   { time: "21–", label: "Family · Rest", sub: "가족·취침" },
 ];
 
+// ── 날짜 헬퍼 (로컬 시간 기준) ───────────────────────────────
+// toISOString()은 UTC → 한국 밤 9시 이후 날짜가 달라짐 → 로컬 기준 사용
+const dateToStr = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 // ── 로컬 스토리지 헬퍼 ───────────────────────────────────────
 const storageKey = (type, dateStr) => `planner_${type}_${dateStr}`;
 const save = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
@@ -81,12 +86,16 @@ const Ic = ({ n, s = 16 }) => {
 // 일별 상세 페이지
 // ══════════════════════════════════════════════════════════════
 const DayPage = ({ date, onBack, gcalEvents }) => {
-  const dateStr = date.toISOString().split("T")[0];
+  const dateStr = dateToStr(date); // 로컬 날짜 기준 (UTC 아님)
   const weekday = date.getDay();
   const isWeekend = weekday === 0 || weekday === 6;
 
   const [top3, setTop3] = useState(() => load(storageKey("top3", dateStr), ["","",""]));
-  const [todos, setTodos] = useState(() => load(storageKey("todos", dateStr), []));
+  const [todos, setTodos] = useState(() => {
+    const saved = load(storageKey("todos", dateStr), []);
+    // 이전 버전 빈 항목({text:"",done:false,stars:0}) 필터링
+    return Array.isArray(saved) ? saved.filter(t => t && t.text !== undefined) : [];
+  });
   // 할일탭에서 추가되면 실시간 반영
   useEffect(() => {
     const sync = () => {
@@ -354,14 +363,14 @@ Enoch님은 개인사업자로 바쁜 일상 속에서 매일 QT를 실천하고
 const WeekPage = ({ weekStart, onSelectDay, onPrevWeek, onNextWeek, gcalEvents }) => {
   const weekDates = getWeekDates(weekStart);
   const weekNum = getWeekNumber(weekStart);
-  const dateStr = weekStart.toISOString().split("T")[0];
+  const dateStr = dateToStr(weekStart); // 로컬 날짜 기준
   const [top3, setTop3] = useState(() => load(storageKey("week_top3", dateStr), ["","",""]));
   useEffect(() => { save(storageKey("week_top3", dateStr), top3); }, [top3]);
 
   const today = new Date(); today.setHours(0,0,0,0);
 
   const getDayEvents = (date) => {
-    const ds = date.toISOString().split("T")[0];
+    const ds = dateToStr(date); // 로컬 날짜 기준
     return gcalEvents.filter(e => (e.start?.date || e.start?.dateTime?.substring(0,10)) === ds);
   };
 
@@ -412,7 +421,7 @@ const WeekPage = ({ weekStart, onSelectDay, onPrevWeek, onNextWeek, gcalEvents }
             const isToday = date.getTime() === today.getTime();
             const isSun = i === 0, isSat = i === 6;
             const dayEvs = getDayEvents(date);
-            const dayKey = storageKey("top3", date.toISOString().split("T")[0]);
+            const dayKey = storageKey("top3", dateToStr(date)); // 로컬 날짜 기준
             const dayTop3 = load(dayKey, ["","",""]);
             const hasData = dayTop3.some(t => t.trim());
 
@@ -461,7 +470,7 @@ const WeekPage = ({ weekStart, onSelectDay, onPrevWeek, onNextWeek, gcalEvents }
           <div style={{background:P.surface, borderRadius:10, padding:14, border:`1px solid ${P.border}`, textAlign:"center"}}>
             <div style={{fontSize:22, fontWeight:800, color:P.gold}}>
               {weekDates.reduce((sum, d) => {
-                const k = storageKey("todos", d.toISOString().split("T")[0]);
+                const k = storageKey("todos", dateToStr(d));
                 const todos = load(k, []);
                 return sum + todos.filter(t => t.done && t.text).length;
               }, 0)}
