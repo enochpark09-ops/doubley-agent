@@ -56,8 +56,11 @@ const loadGoogleScript = () => new Promise((resolve) => {
   document.head.appendChild(script);
 });
 
-export default function CalendarTab({ onEventsLoaded }) {
-  const [token, setToken] = useState(null);
+export default function CalendarTab({ onEventsLoaded, externalToken, onTokenChange }) {
+  const [token, setToken] = useState(() => {
+    // 2번 수정: 앱 재시작 시 sessionStorage에서 토큰 복원
+    return externalToken || sessionStorage.getItem("gtoken") || null;
+  });
   const [userEmail, setUserEmail] = useState("");
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -111,6 +114,7 @@ export default function CalendarTab({ onEventsLoaded }) {
   const signOut = () => {
     setToken(null); setEvents([]); setUserEmail("");
     sessionStorage.removeItem("gtoken"); sessionStorage.removeItem("gemail");
+    if (onTokenChange) onTokenChange(null);
     if (window.google?.accounts?.oauth2) {
       window.google.accounts.oauth2.revoke(token, () => {});
     }
