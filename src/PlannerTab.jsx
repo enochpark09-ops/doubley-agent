@@ -19,6 +19,13 @@ const getWeekDates = (weekStart) => {
   });
 };
 
+// KST 기준 날짜 문자열
+const todayKST = () => {
+  const d = new Date();
+  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().split("T")[0];
+};
+
 const getWeekStart = (date) => {
   const d = new Date(date);
   d.setDate(d.getDate() - d.getDay()); // 일요일 기준
