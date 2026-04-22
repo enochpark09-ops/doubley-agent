@@ -77,7 +77,11 @@ export default function CalendarTab({ onEventsLoaded, externalToken, onTokenChan
   useEffect(() => {
     const saved = sessionStorage.getItem("gtoken");
     const email = sessionStorage.getItem("gemail");
-    if (saved) { setToken(saved); if (email) setUserEmail(email); }
+    if (saved) {
+      setToken(saved);
+      if (email) setUserEmail(email);
+      if (onTokenChange) onTokenChange(saved);  // ← 앱 시작 시에도 전달
+    }
   }, []);
 
   useEffect(() => { if (token) loadEvents(); }, [token]);
@@ -103,6 +107,7 @@ export default function CalendarTab({ onEventsLoaded, externalToken, onTokenChan
           } catch {}
           setToken(t);
           sessionStorage.setItem("gtoken", t);
+          if (onTokenChange) onTokenChange(t);  // ← App으로 토큰 전달
         },
       });
       client.requestAccessToken({ prompt: "select_account" });
