@@ -7,7 +7,7 @@ const P = {
   gold: "#C4A86C", goldDim: "#c4a86c22", goldMid: "#c4a86c55",
   bronze: "#8B7355", text: "#e8e4dc", textMuted: "#9a9690", textDim: "#6a6660",
   green: "#6dcc7a", red: "#e07070", blue: "#7aabcc",
-  sun: "#e07070", sat: "#7aabcc",
+  sun: "#e07070", sat: "#7aabcc", green: "#6dcc7a", greenDim: "#6dcc7a22",
 };
 
 // 주차 계산 유틸
@@ -56,6 +56,8 @@ const load = (key, def) => { try { const v = localStorage.getItem(key); return v
 const Ic = ({ n, s = 16 }) => {
   const d = {
     back: <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>,
+    plus: <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+    x: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
     chevL: <polyline points="15 18 9 12 15 6"/>,
     chevR: <polyline points="9 18 15 12 9 6"/>,
     check: <polyline points="20 6 9 17 4 12"/>,
@@ -77,7 +79,16 @@ const DayPage = ({ date, onBack, gcalEvents }) => {
   const isWeekend = weekday === 0 || weekday === 6;
 
   const [top3, setTop3] = useState(() => load(storageKey("top3", dateStr), ["","",""]));
-  const [todos, setTodos] = useState(() => load(storageKey("todos", dateStr), [{text:"",done:false,stars:0},{text:"",done:false,stars:0},{text:"",done:false,stars:0},{text:"",done:false,stars:0},{text:"",done:false,stars:0},{text:"",done:false,stars:0}]));
+  const [todos, setTodos] = useState(() => load(storageKey("todos", dateStr), []));
+  // 할일탭에서 추가되면 실시간 반영
+  useEffect(() => {
+    const sync = () => {
+      const fresh = load(storageKey("todos", dateStr), []);
+      setTodos(fresh);
+    };
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, [dateStr]);
   const [blocks, setBlocks] = useState(() => load(storageKey("blocks", dateStr), TIME_BLOCKS.map(b => ({...b, note:"", stars:0}))));
   const [notes, setNotes] = useState(() => load(storageKey("notes", dateStr), ""));
   const [reflection, setReflection] = useState(() => load(storageKey("reflection", dateStr), ""));
@@ -264,19 +275,38 @@ Enoch님은 개인사업자로 바쁜 일상 속에서 매일 QT를 실천하고
 
         {/* TO-DO */}
         <div style={{background:P.surface, borderRadius:12, padding:16, border:`1px solid ${P.border}`}}>
-          <div style={{fontSize:10, color:P.gold, fontWeight:700, letterSpacing:1.2, marginBottom:14, paddingBottom:8, borderBottom:`1px solid ${P.border}`}}>TO-DO</div>
+          <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14, paddingBottom:8, borderBottom:`1px solid ${P.border}`}}>
+            <div style={{fontSize:10, color:P.gold, fontWeight:700, letterSpacing:1.2}}>TO-DO</div>
+            <button
+              onClick={() => {
+                const n = [...todos, {text:"", done:false, stars:0}];
+                setTodos(n);
+              }}
+              style={{background:P.goldDim, border:`1px solid ${P.goldMid}`, borderRadius:6, padding:"3px 9px", color:P.gold, cursor:"pointer", fontSize:11, fontFamily:"inherit", display:"flex", alignItems:"center", gap:4}}>
+              <Ic n="plus" s={11}/> 추가
+            </button>
+          </div>
+          {todos.length === 0 && (
+            <div style={{fontSize:12, color:P.textDim, textAlign:"center", padding:"10px 0"}}>
+              + 추가 버튼으로 할일을 입력하세요
+            </div>
+          )}
           {todos.map((t, i) => (
-            <div key={i} style={{display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderBottom:i<todos.length-1?`1px solid ${P.border}`:"none"}}>
+            <div key={i} style={{display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:i<todos.length-1?`1px solid ${P.border}`:"none"}}>
               <Stars val={t.stars} onChange={v => { const n=[...todos]; n[i]={...n[i],stars:v}; setTodos(n); }}/>
               <input
                 value={t.text}
                 onChange={e => { const n=[...todos]; n[i]={...n[i],text:e.target.value}; setTodos(n); }}
-                placeholder="할일..."
+                placeholder="할일 입력..."
                 style={{flex:1, background:"transparent", border:"none", borderBottom:`1px solid ${P.border}`, color:t.done?P.textDim:P.text, fontSize:13, outline:"none", fontFamily:"inherit", padding:"3px 0", textDecoration:t.done?"line-through":"none"}}
               />
               <button onClick={() => { const n=[...todos]; n[i]={...n[i],done:!n[i].done}; setTodos(n); }}
                 style={{width:20, height:20, borderRadius:3, border:`1.5px solid ${t.done?P.gold:P.border}`, background:t.done?P.gold:"transparent", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:"#1a1a18"}}>
                 {t.done && <Ic n="check" s={11}/>}
+              </button>
+              <button onClick={() => { const n=todos.filter((_,j)=>j!==i); setTodos(n); }}
+                style={{background:"none", border:"none", color:P.textDim, cursor:"pointer", padding:2, display:"flex", flexShrink:0}}>
+                <Ic n="x" s={13}/>
               </button>
             </div>
           ))}
@@ -438,6 +468,22 @@ const WeekPage = ({ weekStart, onSelectDay, onPrevWeek, onNextWeek, gcalEvents }
             <div style={{fontSize:10, color:P.textDim, marginTop:2}}>구글 캘린더 일정</div>
           </div>
         </div>
+
+        {/* 구글 캘린더 연동 안내 */}
+        {gcalEvents.length === 0 ? (
+          <div style={{background:P.surface, borderRadius:10, padding:12, border:`1px dashed ${P.border}`, display:"flex", alignItems:"center", gap:8}}>
+            <Ic n="cal" s={14}/>
+            <div style={{fontSize:11, color:P.textDim, lineHeight:1.6}}>
+              구글 캘린더 일정을 표시하려면<br/>
+              <span style={{color:P.gold}}>캘린더 탭</span>에서 구글 로그인 후 플래너로 돌아오세요
+            </div>
+          </div>
+        ) : (
+          <div style={{background:P.greenDim||"#6dcc7a11", borderRadius:10, padding:10, border:`1px solid ${P.green||"#6dcc7a"}33`, display:"flex", alignItems:"center", gap:8}}>
+            <Ic n="cal" s={14}/>
+            <div style={{fontSize:11, color:P.green||"#6dcc7a"}}>구글 캘린더 연동됨 · {gcalEvents.length}개 일정</div>
+          </div>
+        )}
       </div>
     </div>
   );
