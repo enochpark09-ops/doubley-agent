@@ -264,6 +264,8 @@ export default function BackupTab({ gcalToken }) {
   const [autoBackup, setAutoBackup] = useState(() => localStorage.getItem("auto_backup") === "true");
   const isLoading = status === "backing" || status === "restoring" || status === "sheeting";
   const dataCount = Object.keys(collectAllData().items).length;
+  // 새 기기 감지: 데이터 없고 로그인 됨
+  const isNewDevice = dataCount === 0 && !!gcalToken;
 
   useEffect(() => { localStorage.setItem("auto_backup", autoBackup); }, [autoBackup]);
 
@@ -336,14 +338,27 @@ export default function BackupTab({ gcalToken }) {
     } catch (e) { setStatus("error"); setMessage(`❌ 불러오기 실패: ${e.message}`); }
   };
 
+  const [countdown, setCountdown] = useState(0);
+
   const restore = async () => {
     if (!previewData) return;
     setStatus("restoring"); setMessage("복원 중...");
     try {
       const count = restoreAllData(previewData);
-      setStatus("done");
-      setMessage(`✅ 복원 완료! ${count}개 항목 복원됨. 앱을 새로고침 해주세요.`);
       setShowRestore(false);
+      setStatus("done");
+      setMessage(`✅ 복원 완료! ${count}개 항목 복원됨.`);
+      // 3초 카운트다운 후 자동 새로고침
+      let n = 3;
+      setCountdown(n);
+      const timer = setInterval(() => {
+        n--;
+        setCountdown(n);
+        if (n <= 0) {
+          clearInterval(timer);
+          window.location.reload();
+        }
+      }, 1000);
     } catch (e) { setStatus("error"); setMessage(`❌ 복원 실패: ${e.message}`); }
   };
 
@@ -353,6 +368,35 @@ export default function BackupTab({ gcalToken }) {
 
   return (
     <div style={{ flex:1, overflowY:"auto", padding:16 }}>
+
+      {/* 새 기기 감지 배너 */}
+      {isNewDevice && (
+        <div style={{ background:`linear-gradient(135deg,#1a2a1a,#1e321e)`, borderRadius:14, padding:16, marginBottom:14, border:`1px solid ${C.green}55` }}>
+          <div style={{ fontSize:15, fontWeight:700, color:C.green, marginBottom:6 }}>📱 새 기기에서 시작하시나요?</div>
+          <div style={{ fontSize:12, color:C.textMuted, lineHeight:1.7, marginBottom:14 }}>
+            이 기기에 저장된 데이터가 없어요.<br/>
+            구글 드라이브 백업에서 데이터를 가져오면<br/>
+            다른 기기의 내용을 그대로 사용할 수 있어요!
+          </div>
+          <button onClick={fetchPreview} disabled={isLoading} style={{
+            width:"100%", padding:"13px 0",
+            background:`linear-gradient(135deg,#1a6b3a,${C.green})`,
+            border:"none", borderRadius:10, color:"#001a0e",
+            fontSize:14, fontWeight:800, cursor:"pointer", fontFamily:"inherit",
+            display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+          }}>
+            <Ic n="download" s={16}/>드라이브에서 데이터 가져오기
+          </button>
+        </div>
+      )}
+
+      {/* 복원 카운트다운 */}
+      {countdown > 0 && (
+        <div style={{ background:C.greenDim, borderRadius:12, padding:16, marginBottom:14, border:`1px solid ${C.green}44`, textAlign:"center" }}>
+          <div style={{ fontSize:13, color:C.green, fontWeight:600, marginBottom:6 }}>✅ 복원 완료! 잠시 후 앱이 새로고침됩니다</div>
+          <div style={{ fontSize:36, fontWeight:800, color:C.green }}>{countdown}</div>
+        </div>
+      )}
 
       {/* 헤더 카드 */}
       <div style={{ background:`linear-gradient(135deg,${C.surface},#2a2820)`, borderRadius:14, padding:16, marginBottom:14, border:`1px solid ${C.goldMid}` }}>
@@ -514,20 +558,56 @@ export default function BackupTab({ gcalToken }) {
       {/* 복원 확인 모달 */}
       {showRestore && previewData && (
         <div style={{ position:"fixed", inset:0, background:"#000b", zIndex:100, display:"flex", alignItems:"flex-end" }}>
-          <div style={{ width:"100%", background:C.surface, borderRadius:"20px 20px 0 0", padding:20, paddingBottom:"calc(20px + env(safe-area-inset-bottom,0px))" }}>
-            <div style={{ fontSize:16, fontWeight:700, color:C.text, marginBottom:6 }}>백업 데이터 확인</div>
-            <div style={{ fontSize:12, color:C.textDim, marginBottom:14 }}>저장 시각: {new Date(previewData.savedAt).toLocaleString("ko-KR")}</div>
-            <div style={{ background:C.bg, borderRadius:10, padding:12, marginBottom:14, border:`1px solid ${C.border}` }}>
-              <div style={{ fontSize:11, color:C.gold, fontWeight:700, marginBottom:6 }}>백업 내용 ({Object.keys(previewData.items||{}).length}개 항목)</div>
-              {Object.keys(previewData.items||{}).slice(0,6).map(k => <div key={k} style={{ fontSize:11, color:C.textDim, marginTop:2 }}>• {k}</div>)}
-              {Object.keys(previewData.items||{}).length > 6 && <div style={{ fontSize:11, color:C.textDim, marginTop:2 }}>... 외 {Object.keys(previewData.items).length-6}개</div>}
+          <div style={{ width:"100%", background:C.surface, borderRadius:"20px 20px 0 0", padding:20, paddingBottom:"calc(20px + env(safe-area-inset-bottom,0px))", maxHeight:"80vh", overflowY:"auto" }}>
+            <div style={{ fontSize:16, fontWeight:700, color:C.text, marginBottom:4 }}>📦 백업 데이터 복원</div>
+            <div style={{ fontSize:11, color:C.textDim, marginBottom:14 }}>
+              백업 시각: {new Date(previewData.savedAt).toLocaleString("ko-KR")}
             </div>
-            <div style={{ background:C.redDim, borderRadius:8, padding:"9px 12px", marginBottom:14, border:`1px solid ${C.red}33`, fontSize:12, color:C.red }}>
-              ⚠️ 복원하면 현재 기기의 데이터가 백업으로 덮어쓰입니다.
+
+            {/* 백업 내용 요약 */}
+            <div style={{ background:C.bg, borderRadius:10, padding:12, marginBottom:12, border:`1px solid ${C.border}` }}>
+              <div style={{ fontSize:11, color:C.gold, fontWeight:700, marginBottom:10 }}>복원될 데이터</div>
+              {[
+                { key:"biz_v1", label:"📊 사업현황" },
+                { key:"planner_", label:"📋 일별 플래너 & QT 기록" },
+                { key:"cl_v2_", label:"☑️ 체크리스트" },
+              ].map(({ key, label }) => {
+                const count = Object.keys(previewData.items||{}).filter(k=>k.startsWith(key)).length;
+                return count > 0 ? (
+                  <div key={key} style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", borderBottom:`1px solid ${C.border}` }}>
+                    <span style={{ fontSize:12, color:C.text }}>{label}</span>
+                    <span style={{ fontSize:12, color:C.green }}>{count}개 항목 ✓</span>
+                  </div>
+                ) : null;
+              })}
+              <div style={{ display:"flex", justifyContent:"space-between", padding:"8px 0 0" }}>
+                <span style={{ fontSize:12, fontWeight:700, color:C.text }}>총</span>
+                <span style={{ fontSize:12, fontWeight:700, color:C.gold }}>{Object.keys(previewData.items||{}).length}개 항목</span>
+              </div>
             </div>
+
+            {/* 현재 기기 데이터 vs 백업 */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
+              <div style={{ background:C.bg, borderRadius:8, padding:10, border:`1px solid ${C.border}`, textAlign:"center" }}>
+                <div style={{ fontSize:10, color:C.textDim, marginBottom:4 }}>이 기기 현재 데이터</div>
+                <div style={{ fontSize:20, fontWeight:800, color:dataCount>0?C.gold:C.textDim }}>{dataCount}개</div>
+              </div>
+              <div style={{ background:C.bg, borderRadius:8, padding:10, border:`1px solid ${C.green}44`, textAlign:"center" }}>
+                <div style={{ fontSize:10, color:C.textDim, marginBottom:4 }}>백업 데이터</div>
+                <div style={{ fontSize:20, fontWeight:800, color:C.green }}>{Object.keys(previewData.items||{}).length}개</div>
+              </div>
+            </div>
+
+            <div style={{ background:C.redDim, borderRadius:8, padding:"10px 12px", marginBottom:16, border:`1px solid ${C.red}33`, fontSize:12, color:C.red, lineHeight:1.6 }}>
+              ⚠️ 복원하면 이 기기의 현재 데이터가 백업으로 덮어쓰입니다.<br/>
+              복원 완료 후 앱이 자동으로 새로고침됩니다.
+            </div>
+
             <div style={{ display:"flex", gap:10 }}>
-              <button onClick={()=>setShowRestore(false)} style={{ flex:1, padding:"12px 0", background:"transparent", border:`1px solid ${C.border}`, borderRadius:10, color:C.textMuted, cursor:"pointer", fontSize:14, fontFamily:"inherit" }}>취소</button>
-              <button onClick={restore} style={{ flex:2, padding:"12px 0", background:`linear-gradient(135deg,${C.bronze},${C.gold})`, border:"none", borderRadius:10, color:"#1a1a18", cursor:"pointer", fontSize:14, fontWeight:700, fontFamily:"inherit" }}>복원하기</button>
+              <button onClick={()=>setShowRestore(false)} style={{ flex:1, padding:"13px 0", background:"transparent", border:`1px solid ${C.border}`, borderRadius:10, color:C.textMuted, cursor:"pointer", fontSize:14, fontFamily:"inherit" }}>취소</button>
+              <button onClick={restore} style={{ flex:2, padding:"13px 0", background:`linear-gradient(135deg,#1a6b3a,${C.green})`, border:"none", borderRadius:10, color:"#001a0e", cursor:"pointer", fontSize:15, fontWeight:800, fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
+                <Ic n="download" s={16}/>복원하기
+              </button>
             </div>
           </div>
         </div>
