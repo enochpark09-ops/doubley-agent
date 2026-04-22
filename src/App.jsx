@@ -67,10 +67,12 @@ const BottomTab = ({ active, onClick, icon, label }) => (
 
 // ── 체크리스트 헬퍼 ──────────────────────────────────────────
 const todayStr = () => {
+  // 로컬 시간 기준 날짜 (브라우저 시스템 시간 = 한국 시간)
   const d = new Date();
-  // 한국 시간(KST = UTC+9) 기준 날짜
-  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
-  return kst.toISOString().split("T")[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 };
 const FIXED_ITEMS = [
   { id:"qt",      emoji:"✝️", label:"QT" },
