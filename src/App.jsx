@@ -250,35 +250,78 @@ const AssistantTab = ({ todos, setTodos }) => {
         </div>
       )}
 
-      {/* 3번 수정: 할일 뷰 - "내 할일" 섹션 제거, 플래너 연동만 */}
+      {/* 할일 뷰 - 플래너 완전 양방향 연동 */}
       {view === "todos" && (
         <div style={{ flex:1, overflowY:"auto", padding:14 }}>
-          <div style={{ background:C.goldDim, borderRadius:10, padding:"9px 13px", marginBottom:12, border:`1px solid ${C.gold}44`, fontSize:11, color:C.gold }}>
-            📋 여기서 추가한 할일은 플래너 탭의 일별 할일과 자동 연동됩니다
+          {/* 연동 안내 */}
+          <div style={{ background:C.goldDim, borderRadius:10, padding:"10px 13px", marginBottom:12, border:`1px solid ${C.gold}44` }}>
+            <div style={{ fontSize:12, fontWeight:600, color:C.gold, marginBottom:3 }}>📋 플래너 자동 연동</div>
+            <div style={{ fontSize:11, color:C.textMuted, lineHeight:1.6 }}>
+              여기서 추가 → 오늘 플래너 TO-DO에 자동 저장<br/>
+              플래너에서 입력 → 여기 목록에 실시간 반영
+            </div>
           </div>
-          <div style={{ display:"flex", gap:8, marginBottom:14 }}>
-            <input value={newTodo} onChange={e=>setNewTodo(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&newTodo.trim()){addTodo(newTodo);setNewTodo("");}}} placeholder="새 할일 추가 (플래너 자동 연동)" style={{ flex:1, background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, padding:"11px 13px", fontSize:14, outline:"none", fontFamily:"inherit" }}/>
-            <button onClick={()=>{addTodo(newTodo);setNewTodo("");}} style={{ width:42, height:42, borderRadius:10, background:C.goldDim, border:`1px solid ${C.gold}`, color:C.gold, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}><Ic n="plus" s={18}/></button>
+
+          {/* 할일 추가 입력 */}
+          <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+            <input value={newTodo} onChange={e=>setNewTodo(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&newTodo.trim()){addTodo(newTodo);setNewTodo("");}}}
+              placeholder="할일 입력 후 Enter (오늘 플래너에 자동 추가)"
+              style={{ flex:1, background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, padding:"11px 13px", fontSize:13, outline:"none", fontFamily:"inherit" }}/>
+            <button onClick={()=>{addTodo(newTodo);setNewTodo("");}} disabled={!newTodo.trim()}
+              style={{ width:42, height:42, borderRadius:10, background:newTodo.trim()?C.goldDim:C.border, border:`1px solid ${newTodo.trim()?C.gold:C.border}`, color:newTodo.trim()?C.gold:C.textDim, cursor:newTodo.trim()?"pointer":"not-allowed", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <Ic n="plus" s={18}/>
+            </button>
           </div>
-          {/* 플래너에서 가져온 항목만 표시 */}
+
+          {/* 플래너에서 가져온 항목 (실시간) */}
           {(() => {
             const pt = ls.get(`planner_top3_${today}`, []);
             const pd = ls.get(`planner_todos_${today}`, []);
-            const linked = [
-              ...pt.filter(t=>t).map((t,i)=>({id:`pt${i}`,text:t,type:"priority",done:false})),
-              ...pd.filter(t=>t.text).map((t,i)=>({id:`pd${i}`,text:t.text,type:"todo",done:t.done})),
-            ];
-            if (linked.length === 0) return <div style={{ textAlign:"center", padding:"30px 0", color:C.textDim, fontSize:13 }}>플래너에서 할일을 입력하거나<br/>위에서 새 할일을 추가해보세요</div>;
+            const priorities = pt.filter(t=>t).map((t,i)=>({id:`pt${i}`,text:t,type:"priority",done:false}));
+            const plannerTodos = pd.filter(t=>t.text).map((t,i)=>({id:`pd${i}`,text:t.text,type:"todo",done:t.done}));
+            const all = [...priorities, ...plannerTodos];
+            if (all.length === 0) return (
+              <div style={{ textAlign:"center", padding:"30px 0", color:C.textDim, fontSize:12, lineHeight:1.8 }}>
+                플래너 탭 → 날짜 선택 → TO-DO에 입력하거나<br/>
+                위 입력창에서 직접 추가해보세요
+              </div>
+            );
             return (
               <div>
-                <div style={{ fontSize:10, color:C.textMuted, fontWeight:700, letterSpacing:1, marginBottom:8 }}>📌 플래너 연동 항목</div>
-                {linked.map(t => (
-                  <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"11px 14px", marginBottom:6, background:C.surface, borderRadius:10, border:`1px solid ${t.type==="priority"?C.gold+"33":C.border}` }}>
-                    <div style={{ width:6, height:6, borderRadius:"50%", background:t.type==="priority"?C.gold:C.bronze, flexShrink:0 }}/>
-                    <span style={{ flex:1, fontSize:13, color:t.done?C.textDim:C.text, textDecoration:t.done?"line-through":"none" }}>{t.text}</span>
-                    <span style={{ fontSize:9, color:C.textDim }}>{t.type==="priority"?"우선순위":"할일"}</span>
-                  </div>
-                ))}
+                {priorities.length > 0 && (
+                  <>
+                    <div style={{ fontSize:10, color:C.gold, fontWeight:700, letterSpacing:1, marginBottom:8 }}>📌 오늘의 우선순위</div>
+                    {priorities.map(t => (
+                      <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 13px", marginBottom:6, background:C.surface, borderRadius:10, border:`1px solid ${C.gold}33` }}>
+                        <div style={{ width:5, height:5, borderRadius:"50%", background:C.gold, flexShrink:0 }}/>
+                        <span style={{ flex:1, fontSize:13, color:C.text }}>{t.text}</span>
+                        <span style={{ fontSize:9, color:C.textDim, background:C.goldDim, padding:"2px 6px", borderRadius:4 }}>우선순위</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {plannerTodos.length > 0 && (
+                  <>
+                    <div style={{ fontSize:10, color:C.textMuted, fontWeight:700, letterSpacing:1, marginBottom:8, marginTop:priorities.length>0?12:0 }}>✅ 오늘의 TO-DO</div>
+                    {plannerTodos.map(t => (
+                      <div key={t.id} onClick={()=>{
+                        // 완료 상태 토글 → 플래너에도 반영
+                        const d = todayStr();
+                        const existing = ls.get(`planner_todos_${d}`, []);
+                        const updated = existing.map((item,i) => i===parseInt(t.id.replace("pd","")) ? {...item,done:!item.done} : item);
+                        ls.set(`planner_todos_${d}`, updated);
+                        // 강제 리렌더
+                        setNewTodo(prev=>prev);
+                      }} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 13px", marginBottom:6, background:C.surface, borderRadius:10, border:`1px solid ${t.done?C.gold+"44":C.border}`, cursor:"pointer", opacity:t.done?0.7:1 }}>
+                        <div style={{ width:18, height:18, borderRadius:4, border:`1.5px solid ${t.done?C.gold:C.border}`, background:t.done?C.gold:"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, color:"#1a1a18" }}>
+                          {t.done && <Ic n="check" s={11}/>}
+                        </div>
+                        <span style={{ flex:1, fontSize:13, color:t.done?C.textDim:C.text, textDecoration:t.done?"line-through":"none" }}>{t.text}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             );
           })()}
