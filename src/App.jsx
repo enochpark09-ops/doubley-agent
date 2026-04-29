@@ -381,17 +381,120 @@ const AssistantTab = ({ todos, setTodos }) => {
 // 4번 수정: 사업현황 탭 - 내용 수정 + 사업 추가 + AI 대화
 // ══════════════════════════════════════════════════════════════
 const INIT_BIZ = [
-  { id:1, name:"스마트스토어", emoji:"🏪", color:C.gold, progress:65, kpis:[{label:"상품수",value:"12개"},{label:"리뷰",value:"4.8★"},{label:"상태",value:"운영중"}], milestones:[{text:"SOU SOU 상품 등록",done:true},{text:"DULTON 라인업 확장",done:true},{text:"블로그 SEO 연동",done:false},{text:"Daangn 마켓 유입",done:false}], note:"일본 라이프스타일 굿즈 수입 판매." },
-  { id:2, name:"팔국지 웹소설", emoji:"📖", color:"#a07acc", progress:42, kpis:[{label:"완성화수",value:"5화"},{label:"플랫폼",value:"문피아"},{label:"계획",value:"7시즌"}], milestones:[{text:"스토리 바이블 v2.0",done:true},{text:"100인 캐릭터 바이블",done:true},{text:"1~5화 초고 완성",done:true},{text:"6화 초고 작성",done:false},{text:"문피아 연재 시작",done:false}], note:"아사달의 심장. 아사녀·김거등 듀얼 주인공." },
-  { id:3, name:"AI 커피앱 AX-16", emoji:"☕", color:C.bronze, progress:88, kpis:[{label:"완성도",value:"90%"},{label:"상태",value:"최종테스트"},{label:"지원",value:"신청완료"}], milestones:[{text:"시장조사 196명",done:true},{text:"BOM 설계",done:true},{text:"특허 명세서 2건",done:true},{text:"앱 최종 테스트",done:false},{text:"런칭",done:false}], note:"커스텀 블렌딩 앱." },
-  { id:4, name:"Suno 음악", emoji:"🎵", color:C.blue, progress:55, kpis:[{label:"트랙",value:"40+곡"},{label:"배급",value:"DistroKid"},{label:"ContentID",value:"준비중"}], milestones:[{text:"트랙 40곡 생성",done:true},{text:"DistroKid 계정",done:false},{text:"전곡 업로드",done:false},{text:"YouTube ContentID",done:false}], note:"AI 생성 음악 수익화." },
-  { id:5, name:"디지털 플래너", emoji:"📓", color:"#cc9a6d", progress:70, kpis:[{label:"완성도",value:"70%"},{label:"포맷",value:"갤럭시탭"},{label:"페이지",value:"64p"}], milestones:[{text:"30일 액션 플래너 PDF",done:true},{text:"64p 인터랙티브 PDF",done:true},{text:"판매 페이지 제작",done:false},{text:"스마트스토어 등록",done:false}], note:"차콜/골드/브론즈 컬러." },
+  {
+    id:1, name:"스마트스토어", emoji:"🏪", color:C.gold,
+    progress:0,
+    goal:"월 순수익 300만원 달성 (일본 라이프스타일 굿즈 전문 스토어)",
+    kpis:[{label:"상품수",value:"12개"},{label:"리뷰",value:"4.8★"},{label:"상태",value:"운영중"}],
+    milestones:[
+      {text:"SOU SOU 상품 등록 완료",done:true},
+      {text:"DULTON 라인업 확장",done:true},
+      {text:"상품 30개 이상 확보",done:false},
+      {text:"블로그 SEO 포스팅 20개 작성",done:false},
+      {text:"스마트스토어 광고 CPC 설정",done:false},
+      {text:"Daangn 마켓 연동 & 유입",done:false},
+      {text:"월 주문 100건 달성",done:false},
+      {text:"월 순수익 100만원 달성",done:false},
+      {text:"월 순수익 200만원 달성",done:false},
+      {text:"월 순수익 300만원 달성 🎯",done:false},
+    ],
+    note:"일본 라이프스타일 굿즈(SOU SOU, DULTON) 수입 판매. 최종 목표: 월 300만원 순수익"
+  },
+  {
+    id:2, name:"팔국지 웹소설", emoji:"📖", color:"#a07acc",
+    progress:0,
+    goal:"문피아 연재 후 카카오페이지 입점 & 시즌1 완결 (7시즌 완결 후 IP 사업화)",
+    kpis:[{label:"완성화수",value:"5화"},{label:"플랫폼",value:"문피아"},{label:"계획",value:"7시즌"}],
+    milestones:[
+      {text:"스토리 바이블 v2.0 완성",done:true},
+      {text:"100인 캐릭터 바이블 완성",done:true},
+      {text:"1~5화 초고 완성",done:true},
+      {text:"6~10화 초고 작성",done:false},
+      {text:"시즌1 (20화) 초고 완성",done:false},
+      {text:"문피아 연재 시작",done:false},
+      {text:"문피아 베스트 100 진입",done:false},
+      {text:"카카오페이지 입점",done:false},
+      {text:"시즌1 완결 & 유료화",done:false},
+      {text:"시즌2 연재 시작",done:false},
+      {text:"7시즌 완결 & IP 사업화 🎯",done:false},
+    ],
+    note:"아사달의 심장. 아사녀·김거등 듀얼 주인공. 최종 목표: 7시즌 완결 후 드라마·게임 IP 사업화"
+  },
+  {
+    id:3, name:"AI 커피앱 AX-16", emoji:"☕", color:C.bronze,
+    progress:0,
+    goal:"앱스토어 출시 후 MAU 1만명 달성 & B2B 카페 납품 계약 체결",
+    kpis:[{label:"완성도",value:"90%"},{label:"상태",value:"최종테스트"},{label:"지원",value:"신청완료"}],
+    milestones:[
+      {text:"시장조사 196명 완료",done:true},
+      {text:"BOM 설계 완료",done:true},
+      {text:"특허 명세서 2건 완료",done:true},
+      {text:"앱 최종 테스트 & QA",done:false},
+      {text:"앱스토어 & 플레이스토어 출시",done:false},
+      {text:"초기 사용자 1000명 확보",done:false},
+      {text:"카페 B2B 파트너 3곳 계약",done:false},
+      {text:"MAU 5000명 달성",done:false},
+      {text:"MAU 1만명 달성 🎯",done:false},
+    ],
+    note:"AI 기반 커스텀 커피 블렌딩 앱. 최종 목표: MAU 1만명 + B2B 카페 납품"
+  },
+  {
+    id:4, name:"Suno 음악", emoji:"🎵", color:C.blue,
+    progress:0,
+    goal:"월 스트리밍 수익 $500 달성 (DistroKid 배급 + YouTube ContentID)",
+    kpis:[{label:"트랙",value:"40+곡"},{label:"배급",value:"준비중"},{label:"ContentID",value:"준비중"}],
+    milestones:[
+      {text:"트랙 40곡 이상 생성",done:true},
+      {text:"DistroKid 계정 가입 ($22.99/년)",done:false},
+      {text:"전 트랙 DistroKid 업로드",done:false},
+      {text:"YouTube ContentID 등록",done:false},
+      {text:"Spotify for Artists 등록",done:false},
+      {text:"Pond5 스톡뮤직 등록",done:false},
+      {text:"첫 달 스트리밍 수익 발생",done:false},
+      {text:"월 수익 $100 달성",done:false},
+      {text:"월 수익 $300 달성",done:false},
+      {text:"월 수익 $500 달성 🎯",done:false},
+    ],
+    note:"AI 생성 음악 수익화. 최종 목표: 월 스트리밍 수익 $500"
+  },
+  {
+    id:5, name:"디지털 플래너", emoji:"📓", color:"#cc9a6d",
+    progress:0,
+    goal:"스마트스토어 등록 후 월 100개 판매 달성 (갤럭시탭 전용 프리미엄 플래너)",
+    kpis:[{label:"완성도",value:"70%"},{label:"포맷",value:"갤럭시탭"},{label:"페이지",value:"64p"}],
+    milestones:[
+      {text:"30일 액션 플래너 PDF 완성",done:true},
+      {text:"64p 인터랙티브 PDF 완성",done:true},
+      {text:"상품 상세페이지 디자인",done:false},
+      {text:"스마트스토어 상품 등록",done:false},
+      {text:"SNS 홍보 (인스타·블로그)",done:false},
+      {text:"첫 판매 달성",done:false},
+      {text:"월 10개 판매",done:false},
+      {text:"월 50개 판매",done:false},
+      {text:"월 100개 판매 달성 🎯",done:false},
+    ],
+    note:"갤럭시탭 전용 프리미엄 디지털 플래너 (차콜/골드/브론즈). 최종 목표: 월 100개 판매"
+  },
 ];
 const EMOJI_LIST = ["🏪","📖","☕","🎵","📓","💼","🚀","🎨","💡","🏆","🌟","💰","📱","🎬","🎯"];
 const COLOR_LIST = [C.gold,"#a07acc",C.bronze,C.blue,"#cc9a6d","#6dcc7a","#e07070","#7aabcc","#c4a86c","#8b7355"];
 
 const DashboardTab = () => {
-  const [businesses, setBusinesses] = useState(() => ls.get("biz_v1", INIT_BIZ));
+  const [businesses, setBusinesses] = useState(() => {
+    const saved = ls.get("biz_v1", null);
+    // 저장된 데이터가 있으면 사용, 없으면 INIT_BIZ 기반으로 초기화
+    const base = saved || INIT_BIZ;
+    // goal 필드가 없는 구버전 데이터면 INIT_BIZ로 병합
+    return base.map(b => {
+      const init = INIT_BIZ.find(i => i.id === b.id);
+      const merged = init ? { ...init, ...b, goal: b.goal || init.goal, milestones: b.milestones || init.milestones } : b;
+      // 마일스톤 기반 진행률 자동 계산
+      if (merged.milestones?.length) {
+        merged.progress = Math.round(merged.milestones.filter(m=>m.done).length / merged.milestones.length * 100);
+      }
+      return merged;
+    });
+  });
   const [selected, setSelected] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -478,16 +581,28 @@ const DashboardTab = () => {
       <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
         {/* 메인 내용 */}
         <div style={{ flex:1, overflowY:"auto", padding:14 }}>
-          {/* 진행률 */}
+          {/* 최종 목표 */}
+          <div style={{ background:C.surface,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${sel.color}55`,borderLeft:`4px solid ${sel.color}` }}>
+            <div style={{ fontSize:10,color:sel.color,fontWeight:700,letterSpacing:1,marginBottom:6 }}>🎯 최종 수익화 목표</div>
+            {editMode
+              ? <textarea value={sel.goal||""} onChange={e=>updateBiz(sel.id,"goal",e.target.value)} rows={2}
+                  style={{ width:"100%",background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"8px 10px",fontSize:12,outline:"none",fontFamily:"inherit",resize:"none",lineHeight:1.65 }}/>
+              : <div style={{ fontSize:13,color:C.text,lineHeight:1.7,fontWeight:500 }}>{sel.goal||"목표를 설정해주세요"}</div>
+            }
+          </div>
+
+          {/* 진행률 (마일스톤 자동 계산) */}
           <div style={{ background:C.surface,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${C.border}` }}>
             <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
-              <span style={{ fontSize:12,color:C.textMuted }}>진행률</span>
+              <span style={{ fontSize:12,color:C.textMuted }}>달성률 (체크리스트 기반 자동)</span>
               <span style={{ fontSize:18,fontWeight:700,color:sc(sel.progress) }}>{sel.progress}%</span>
             </div>
-            {editMode
-              ? <input type="range" min="0" max="100" value={sel.progress} onChange={e=>updateBiz(sel.id,"progress",parseInt(e.target.value))} style={{ width:"100%",accentColor:sel.color }}/>
-              : <div style={{ height:8,background:C.border,borderRadius:4 }}><div style={{ height:"100%",borderRadius:4,background:`linear-gradient(90deg,${sel.color}88,${sel.color})`,width:`${sel.progress}%`,transition:"width .8s" }}/></div>
-            }
+            <div style={{ height:10,background:C.border,borderRadius:5 }}>
+              <div style={{ height:"100%",borderRadius:5,background:`linear-gradient(90deg,${sel.color}88,${sel.color})`,width:`${sel.progress}%`,transition:"width .8s" }}/>
+            </div>
+            <div style={{ fontSize:10,color:C.textDim,marginTop:6 }}>
+              {sel.milestones?.filter(m=>m.done).length||0} / {sel.milestones?.length||0} 단계 완료
+            </div>
           </div>
 
           {/* KPI */}
@@ -508,22 +623,38 @@ const DashboardTab = () => {
             ))}
           </div>
 
-          {/* 마일스톤 */}
+          {/* 스텝업 체크리스트 */}
           <div style={{ background:C.surface,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${C.border}` }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10 }}>
-              <div style={{ fontSize:11,color:C.textMuted,fontWeight:700 }}>MILESTONES</div>
-              {editMode && <button onClick={()=>addMilestone(sel.id)} style={{ background:C.goldDim,border:`1px solid ${C.gold}`,borderRadius:6,padding:"3px 8px",color:C.gold,cursor:"pointer",fontSize:11,fontFamily:"inherit" }}>+ 추가</button>}
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12 }}>
+              <div>
+                <div style={{ fontSize:11,color:C.textMuted,fontWeight:700 }}>📋 스텝업 체크리스트</div>
+                <div style={{ fontSize:10,color:C.textDim,marginTop:2 }}>체크 완료 시 달성률 자동 반영</div>
+              </div>
+              {editMode && <button onClick={()=>addMilestone(sel.id)} style={{ background:C.goldDim,border:`1px solid ${C.gold}`,borderRadius:6,padding:"4px 9px",color:C.gold,cursor:"pointer",fontSize:11,fontFamily:"inherit",display:"flex",alignItems:"center",gap:4 }}>+ 단계 추가</button>}
             </div>
             {sel.milestones.map((m,i) => (
-              <div key={i} style={{ display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:`1px solid ${C.border}` }}>
-                <div onClick={()=>!editMode&&toggleMs(sel.id,i)} style={{ width:20,height:20,borderRadius:4,border:`2px solid ${m.done?sel.color:C.border}`,background:m.done?sel.color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#1a1a18",cursor:editMode?"default":"pointer" }}>{m.done&&<Ic n="check" s={12}/>}</div>
+              <div key={i} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:`1px solid ${C.border}`,opacity:m.done?0.7:1,transition:"opacity .2s" }}>
+                {/* 단계 번호 */}
+                <div style={{ fontSize:10,color:m.done?sel.color:C.textDim,fontWeight:700,width:22,textAlign:"right",flexShrink:0 }}>{i+1}</div>
+                {/* 체크박스 */}
+                <div onClick={()=>!editMode&&toggleMs(sel.id,i)}
+                  style={{ width:22,height:22,borderRadius:5,border:`2px solid ${m.done?sel.color:C.border}`,background:m.done?sel.color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#1a1a18",cursor:editMode?"default":"pointer",transition:"all .15s" }}>
+                  {m.done&&<Ic n="check" s={13}/>}
+                </div>
                 {editMode
-                  ? <input value={m.text} onChange={e=>updateMs(sel.id,i,e.target.value)} style={{ flex:1,background:"transparent",border:"none",borderBottom:`1px solid ${C.border}`,color:C.text,fontSize:13,outline:"none",fontFamily:"inherit",padding:"2px 0" }}/>
+                  ? <input value={m.text} onChange={e=>updateMs(sel.id,i,e.target.value)}
+                      style={{ flex:1,background:"transparent",border:"none",borderBottom:`1px solid ${C.border}`,color:C.text,fontSize:13,outline:"none",fontFamily:"inherit",padding:"2px 0" }}/>
                   : <span style={{ flex:1,fontSize:13,color:m.done?C.textDim:C.text,textDecoration:m.done?"line-through":"none" }}>{m.text}</span>
                 }
-                {editMode && <button onClick={()=>removeMs(sel.id,i)} style={{ background:"none",border:"none",color:C.red,cursor:"pointer",padding:2,display:"flex" }}><Ic n="x" s={14}/></button>}
+                {editMode && <button onClick={()=>removeMs(sel.id,i)} style={{ background:"none",border:"none",color:C.red,cursor:"pointer",padding:2,display:"flex",flexShrink:0 }}><Ic n="x" s={14}/></button>}
               </div>
             ))}
+            {/* 완료 메시지 */}
+            {sel.milestones.length > 0 && sel.milestones.every(m=>m.done) && (
+              <div style={{ marginTop:12,textAlign:"center",fontSize:13,color:C.green,fontWeight:700 }}>
+                🎉 모든 단계 완료! 최종 목표 달성!
+              </div>
+            )}
           </div>
 
           {/* 메모 */}
@@ -583,15 +714,21 @@ const DashboardTab = () => {
       {/* 사업 카드 */}
       {businesses.map(biz => (
         <div key={biz.id} onClick={()=>setSelected(biz.id)} style={{ background:C.surface,borderRadius:14,padding:16,marginBottom:10,border:`1px solid ${C.border}`,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
-          <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:12 }}>
+          <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:8 }}>
             <span style={{ fontSize:24 }}>{biz.emoji}</span>
             <div style={{ flex:1 }}>
               <div style={{ fontSize:14,fontWeight:700,color:C.text }}>{biz.name}</div>
-              <div style={{ fontSize:11,color:C.textDim }}>{biz.milestones.filter(m=>m.done).length}/{biz.milestones.length} 마일스톤</div>
+              <div style={{ fontSize:10,color:C.textDim }}>{biz.milestones.filter(m=>m.done).length}/{biz.milestones.length} 단계 완료</div>
             </div>
             <div style={{ fontSize:20,fontWeight:800,color:sc(biz.progress) }}>{biz.progress}%</div>
           </div>
-          <div style={{ height:5,background:C.border,borderRadius:3,marginBottom:12 }}><div style={{ height:"100%",borderRadius:3,background:`linear-gradient(90deg,${biz.color}88,${biz.color})`,width:`${biz.progress}%`,transition:"width .8s" }}/></div>
+          {/* 목표 한줄 표시 */}
+          {biz.goal && (
+            <div style={{ fontSize:11,color:biz.color,marginBottom:8,lineHeight:1.5,paddingLeft:4,borderLeft:`2px solid ${biz.color}44` }}>
+              🎯 {biz.goal}
+            </div>
+          )}
+          <div style={{ height:6,background:C.border,borderRadius:3,marginBottom:10 }}><div style={{ height:"100%",borderRadius:3,background:`linear-gradient(90deg,${biz.color}88,${biz.color})`,width:`${biz.progress}%`,transition:"width .8s" }}/></div>
           <div style={{ display:"flex",gap:6 }}>
             {biz.kpis.map((k,i) => <div key={i} style={{ flex:1,background:C.bg,borderRadius:7,padding:"7px 6px",textAlign:"center" }}><div style={{ fontSize:11,fontWeight:700,color:biz.color }}>{k.value}</div><div style={{ fontSize:9,color:C.textDim,marginTop:1 }}>{k.label}</div></div>)}
           </div>
