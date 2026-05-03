@@ -204,7 +204,37 @@ Enoch님은 개인사업자로 바쁜 일상 속에서 매일 QT를 실천하고
                 <div style={{fontSize:9, color:P.textDim}}>경건의 시간</div>
               </div>
             </div>
-            <div style={{fontSize:10, color:P.textDim}}>{date.toLocaleDateString("ko-KR",{month:"short",day:"numeric",weekday:"short"})}</div>
+            <div style={{display:"flex", alignItems:"center", gap:8}}>
+              {/* 매일성경 링크 */}
+              <a href="https://sum.su.or.kr:8888/bible/today" target="_blank" rel="noopener noreferrer"
+                style={{display:"flex", alignItems:"center", gap:5, textDecoration:"none",
+                  background:"linear-gradient(135deg, #1a3a1a, #2a5a2a)",
+                  border:`1px solid #4a8a4a`,
+                  borderRadius:8, padding:"5px 10px",
+                  boxShadow:"0 2px 8px rgba(74,138,74,0.3)",
+                  transition:"opacity .15s"}}
+                onMouseEnter={e=>e.currentTarget.style.opacity=".8"}
+                onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+                {/* 매일성경 아이콘 (십자가 + 책) */}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  {/* 책 배경 */}
+                  <rect x="2" y="4" width="20" height="16" rx="2" fill="#2a7a2a" stroke="#6aba6a" strokeWidth="1.2"/>
+                  <line x1="12" y1="4" x2="12" y2="20" stroke="#6aba6a" strokeWidth="1"/>
+                  {/* 십자가 */}
+                  <line x1="7" y1="9" x2="7" y2="16" stroke="#ffd166" strokeWidth="1.8" strokeLinecap="round"/>
+                  <line x1="4.5" y1="11.5" x2="9.5" y2="11.5" stroke="#ffd166" strokeWidth="1.8" strokeLinecap="round"/>
+                  {/* 오른쪽 텍스트 라인 */}
+                  <line x1="14" y1="9" x2="20" y2="9" stroke="#9acea0" strokeWidth="1.2" strokeLinecap="round"/>
+                  <line x1="14" y1="12" x2="20" y2="12" stroke="#9acea0" strokeWidth="1.2" strokeLinecap="round"/>
+                  <line x1="14" y1="15" x2="18" y2="15" stroke="#9acea0" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+                <div>
+                  <div style={{fontSize:9, fontWeight:700, color:"#6aba6a", letterSpacing:0.5, lineHeight:1}}>매일성경</div>
+                  <div style={{fontSize:8, color:"#4a8a4a", lineHeight:1, marginTop:1}}>오늘 본문 →</div>
+                </div>
+              </a>
+              <div style={{fontSize:10, color:P.textDim}}>{date.toLocaleDateString("ko-KR",{month:"short",day:"numeric",weekday:"short"})}</div>
+            </div>
           </div>
           <div style={{marginBottom:14}}>
             <div style={{fontSize:10, color:P.gold, fontWeight:700, letterSpacing:1, marginBottom:8}}>📖 오늘의 말씀</div>
