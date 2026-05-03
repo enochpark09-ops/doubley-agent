@@ -380,397 +380,274 @@ const AssistantTab = ({ todos, setTodos }) => {
 // ══════════════════════════════════════════════════════════════
 // 4번 수정: 사업현황 탭 - 내용 수정 + 사업 추가 + AI 대화
 // ══════════════════════════════════════════════════════════════
-const INIT_BIZ = [
+// ══════════════════════════════════════════════════════════════
+// 에이전트 실행 탭
+// ══════════════════════════════════════════════════════════════
+const AGENTS = [
   {
-    id:1, name:"스마트스토어", emoji:"🏪", color:C.gold,
-    progress:0,
-    goal:"월 순수익 300만원 달성 (일본 라이프스타일 굿즈 전문 스토어)",
-    kpis:[{label:"상품수",value:"12개"},{label:"리뷰",value:"4.8★"},{label:"상태",value:"운영중"}],
-    milestones:[
-      {text:"SOU SOU 상품 등록 완료",done:true},
-      {text:"DULTON 라인업 확장",done:true},
-      {text:"상품 30개 이상 확보",done:false},
-      {text:"블로그 SEO 포스팅 20개 작성",done:false},
-      {text:"스마트스토어 광고 CPC 설정",done:false},
-      {text:"Daangn 마켓 연동 & 유입",done:false},
-      {text:"월 주문 100건 달성",done:false},
-      {text:"월 순수익 100만원 달성",done:false},
-      {text:"월 순수익 200만원 달성",done:false},
-      {text:"월 순수익 300만원 달성 🎯",done:false},
-    ],
-    note:"일본 라이프스타일 굿즈(SOU SOU, DULTON) 수입 판매. 최종 목표: 월 300만원 순수익"
+    id:"novel", name:"웹소설 제작", emoji:"📖", color:"#a07acc",
+    status:"planned",   // planned | active | building
+    url:"", desc:"팔국지 7시즌 웹소설 제작 에이전트",
+    tags:["문피아","카카오페이지","연재"],
+    schedule:"매일 2화 집필",
+    revenue:"플랫폼 유료화",
   },
   {
-    id:2, name:"팔국지 웹소설", emoji:"📖", color:"#a07acc",
-    progress:0,
-    goal:"문피아 연재 후 카카오페이지 입점 & 시즌1 완결 (7시즌 완결 후 IP 사업화)",
-    kpis:[{label:"완성화수",value:"5화"},{label:"플랫폼",value:"문피아"},{label:"계획",value:"7시즌"}],
-    milestones:[
-      {text:"스토리 바이블 v2.0 완성",done:true},
-      {text:"100인 캐릭터 바이블 완성",done:true},
-      {text:"1~5화 초고 완성",done:true},
-      {text:"6~10화 초고 작성",done:false},
-      {text:"시즌1 (20화) 초고 완성",done:false},
-      {text:"문피아 연재 시작",done:false},
-      {text:"문피아 베스트 100 진입",done:false},
-      {text:"카카오페이지 입점",done:false},
-      {text:"시즌1 완결 & 유료화",done:false},
-      {text:"시즌2 연재 시작",done:false},
-      {text:"7시즌 완결 & IP 사업화 🎯",done:false},
-    ],
-    note:"아사달의 심장. 아사녀·김거등 듀얼 주인공. 최종 목표: 7시즌 완결 후 드라마·게임 IP 사업화"
+    id:"politics", name:"정치 유튜브", emoji:"🎙️", color:"#e07070",
+    status:"building",
+    url:"", desc:"AI 보이스오버 기반 정치 논평 채널",
+    tags:["유튜브","정치","AI 보이스"],
+    schedule:"주 3회 업로드",
+    revenue:"유튜브 광고",
   },
   {
-    id:3, name:"AI 커피앱 AX-16", emoji:"☕", color:C.bronze,
-    progress:0,
-    goal:"앱스토어 출시 후 MAU 1만명 달성 & B2B 카페 납품 계약 체결",
-    kpis:[{label:"완성도",value:"90%"},{label:"상태",value:"최종테스트"},{label:"지원",value:"신청완료"}],
-    milestones:[
-      {text:"시장조사 196명 완료",done:true},
-      {text:"BOM 설계 완료",done:true},
-      {text:"특허 명세서 2건 완료",done:true},
-      {text:"앱 최종 테스트 & QA",done:false},
-      {text:"앱스토어 & 플레이스토어 출시",done:false},
-      {text:"초기 사용자 1000명 확보",done:false},
-      {text:"카페 B2B 파트너 3곳 계약",done:false},
-      {text:"MAU 5000명 달성",done:false},
-      {text:"MAU 1만명 달성 🎯",done:false},
-    ],
-    note:"AI 기반 커스텀 커피 블렌딩 앱. 최종 목표: MAU 1만명 + B2B 카페 납품"
+    id:"sports", name:"스포츠 분석", emoji:"⚽", color:"#7aabcc",
+    status:"planned",
+    url:"", desc:"AI 기반 스포츠 경기 분석 유튜브",
+    tags:["유튜브","스포츠","데이터분석"],
+    schedule:"경기 후 24시간 이내",
+    revenue:"유튜브 광고",
   },
   {
-    id:4, name:"Suno 음악", emoji:"🎵", color:C.blue,
-    progress:0,
-    goal:"월 스트리밍 수익 $500 달성 (DistroKid 배급 + YouTube ContentID)",
-    kpis:[{label:"트랙",value:"40+곡"},{label:"배급",value:"준비중"},{label:"ContentID",value:"준비중"}],
-    milestones:[
-      {text:"트랙 40곡 이상 생성",done:true},
-      {text:"DistroKid 계정 가입 ($22.99/년)",done:false},
-      {text:"전 트랙 DistroKid 업로드",done:false},
-      {text:"YouTube ContentID 등록",done:false},
-      {text:"Spotify for Artists 등록",done:false},
-      {text:"Pond5 스톡뮤직 등록",done:false},
-      {text:"첫 달 스트리밍 수익 발생",done:false},
-      {text:"월 수익 $100 달성",done:false},
-      {text:"월 수익 $300 달성",done:false},
-      {text:"월 수익 $500 달성 🎯",done:false},
-    ],
-    note:"AI 생성 음악 수익화. 최종 목표: 월 스트리밍 수익 $500"
+    id:"coffee", name:"커피 블로그", emoji:"☕", color:C.bronze,
+    status:"building",
+    url:"", desc:"원두·브루잉·카페 리뷰 전문 블로그",
+    tags:["블로그","애드센스","원두"],
+    schedule:"주 3회 포스팅",
+    revenue:"애드센스/제휴",
   },
   {
-    id:5, name:"디지털 플래너", emoji:"📓", color:"#cc9a6d",
-    progress:0,
-    goal:"스마트스토어 등록 후 월 100개 판매 달성 (갤럭시탭 전용 프리미엄 플래너)",
-    kpis:[{label:"완성도",value:"70%"},{label:"포맷",value:"갤럭시탭"},{label:"페이지",value:"64p"}],
-    milestones:[
-      {text:"30일 액션 플래너 PDF 완성",done:true},
-      {text:"64p 인터랙티브 PDF 완성",done:true},
-      {text:"상품 상세페이지 디자인",done:false},
-      {text:"스마트스토어 상품 등록",done:false},
-      {text:"SNS 홍보 (인스타·블로그)",done:false},
-      {text:"첫 판매 달성",done:false},
-      {text:"월 10개 판매",done:false},
-      {text:"월 50개 판매",done:false},
-      {text:"월 100개 판매 달성 🎯",done:false},
-    ],
-    note:"갤럭시탭 전용 프리미엄 디지털 플래너 (차콜/골드/브론즈). 최종 목표: 월 100개 판매"
+    id:"interior", name:"인테리어 블로그", emoji:"🏠", color:"#cc9a6d",
+    status:"building",
+    url:"", desc:"DIY 인테리어·리모델링 정보 블로그",
+    tags:["블로그","애드센스","인테리어"],
+    schedule:"주 2회 포스팅",
+    revenue:"애드센스/제휴",
+  },
+  {
+    id:"essay", name:"철학/신앙 에세이", emoji:"✝️", color:C.gold,
+    status:"building",
+    url:"", desc:"기독교 철학·신앙 에세이 블로그",
+    tags:["블로그","에세이","신앙"],
+    schedule:"주 2회 포스팅",
+    revenue:"구독/애드센스",
+  },
+  {
+    id:"suno", name:"수노 작곡가", emoji:"🎵", color:C.blue,
+    status:"active",
+    url:"https://suno-agent.vercel.app",
+    desc:"AI 음악 생성 & 아티스트 에이전트 (Hanokh)",
+    tags:["Suno","DistroKid","K-POP"],
+    schedule:"주 3곡 생성·배급",
+    revenue:"스트리밍 수익",
+  },
+  {
+    id:"mfstock", name:"MF 주식 분석", emoji:"📈", color:"#00d4aa",
+    status:"active",
+    url:"https://mf-stock-agent.vercel.app",
+    desc:"MoveFutures 기반 AI반도체 주식 분석",
+    tags:["주식","MF분석","블로그"],
+    schedule:"매일 아침 분석",
+    revenue:"블로그 광고",
   },
 ];
-const EMOJI_LIST = ["🏪","📖","☕","🎵","📓","💼","🚀","🎨","💡","🏆","🌟","💰","📱","🎬","🎯"];
-const COLOR_LIST = [C.gold,"#a07acc",C.bronze,C.blue,"#cc9a6d","#6dcc7a","#e07070","#7aabcc","#c4a86c","#8b7355"];
 
-const DashboardTab = () => {
-  const [businesses, setBusinesses] = useState(() => {
-    const saved = ls.get("biz_v1", null);
-    // 저장된 데이터가 있으면 사용, 없으면 INIT_BIZ 기반으로 초기화
-    const base = saved || INIT_BIZ;
-    // goal 필드가 없는 구버전 데이터면 INIT_BIZ로 병합
-    return base.map(b => {
-      const init = INIT_BIZ.find(i => i.id === b.id);
-      const merged = init ? { ...init, ...b, goal: b.goal || init.goal, milestones: b.milestones || init.milestones } : b;
-      // 마일스톤 기반 진행률 자동 계산
-      if (merged.milestones?.length) {
-        merged.progress = Math.round(merged.milestones.filter(m=>m.done).length / merged.milestones.length * 100);
-      }
-      return merged;
-    });
-  });
+// 추가 제안 에이전트
+const SUGGESTED_AGENTS = [
+  { emoji:"👶", name:"육아/교육 블로그", reason:"검색량 높고 애드센스 단가 우수. 아이 성장 기록 + 교육 정보 결합.", revenue:"애드센스/쿠팡파트너스" },
+  { emoji:"🌏", name:"여행 브이로그", reason:"유튜브 알고리즘 친화적. 국내 여행지 + AI 편집으로 제작비 절감.", revenue:"유튜브 광고/제휴" },
+  { emoji:"💼", name:"직장인 재테크 블로그", reason:"재테크 키워드 CPC 높음. MF 주식 경험 연계 가능.", revenue:"애드센스/제휴" },
+];
+
+const STATUS_CONFIG = {
+  active:    { label:"운영중",    color:"#00d4aa", bg:"#00d4aa18", icon:"●" },
+  building:  { label:"제작중",    color:C.gold,    bg:C.goldDim,   icon:"◐" },
+  planned:   { label:"기획중",    color:C.textDim, bg:C.border,    icon:"○" },
+};
+
+const AgentTab = () => {
+  const [agents, setAgents] = useState(() => ls.get("agents_v1", AGENTS));
   const [selected, setSelected] = useState(null);
   const [editMode, setEditMode] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
-  const [chatMsgs, setChatMsgs] = useState([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const chatRef = useRef(null);
+  const [showSuggest, setShowSuggest] = useState(false);
+  const [todayRun, setTodayRun] = useState(() => ls.get("agent_run_today", {}));
 
-  // 사업 데이터 저장
-  useEffect(() => ls.set("biz_v1", businesses), [businesses]);
+  useEffect(() => { ls.set("agents_v1", agents); }, [agents]);
+  useEffect(() => { ls.set("agent_run_today", todayRun); }, [todayRun]);
 
-  const sel = businesses.find(b => b.id === selected);
-  const overall = Math.round(businesses.reduce((s,b) => s+b.progress, 0) / businesses.length);
-  const sc = p => p >= 80 ? C.green : p >= 50 ? C.gold : C.bronze;
+  const activeCount = agents.filter(a => a.status === "active").length;
+  const buildCount  = agents.filter(a => a.status === "building").length;
+  const todayCount  = Object.values(todayRun).filter(Boolean).length;
 
-  const toggleMs = (bizId, mi) => setBusinesses(businesses.map(b => {
-    if (b.id !== bizId) return b;
-    const ms = b.milestones.map((m,i) => i===mi ? {...m,done:!m.done} : m);
-    return {...b, milestones:ms, progress:Math.round(ms.filter(m=>m.done).length/ms.length*100)};
-  }));
+  const toggleRun = (id) => setTodayRun(p => ({ ...p, [id]: !p[id] }));
 
-  const updateBiz = (id, field, val) => setBusinesses(businesses.map(b => b.id===id ? {...b,[field]:val} : b));
-  const updateKpi = (id, ki, field, val) => setBusinesses(businesses.map(b => {
-    if (b.id!==id) return b;
-    const kpis = b.kpis.map((k,i) => i===ki ? {...k,[field]:val} : k);
-    return {...b, kpis};
-  }));
-  const addMilestone = (id) => setBusinesses(businesses.map(b => b.id===id ? {...b,milestones:[...b.milestones,{text:"새 마일스톤",done:false}]} : b));
-  const updateMs = (id,mi,text) => setBusinesses(businesses.map(b => {
-    if (b.id!==id) return b;
-    const ms = b.milestones.map((m,i) => i===mi ? {...m,text} : m);
-    return {...b,milestones:ms};
-  }));
-  const removeMs = (id,mi) => setBusinesses(businesses.map(b => {
-    if (b.id!==id) return b;
-    return {...b,milestones:b.milestones.filter((_,i)=>i!==mi)};
-  }));
-  const removeBiz = (id) => { setBusinesses(businesses.filter(b=>b.id!==id)); setSelected(null); };
+  const updateAgent = (id, field, val) =>
+    setAgents(agents.map(a => a.id === id ? { ...a, [field]: val } : a));
 
-  // AI 대화
-  const sendChat = async () => {
-    if (!chatInput.trim() || chatLoading) return;
-    const userMsg = {role:"user",content:chatInput};
-    const newMsgs = [...chatMsgs, userMsg];
-    setChatMsgs(newMsgs); setChatInput(""); setChatLoading(true);
-    const ctx = sel
-      ? `현재 보고 있는 사업: ${sel.name} (진행률 ${sel.progress}%, 미완료: ${sel.milestones.filter(m=>!m.done).map(m=>m.text).join(",")})`
-      : `전체 사업 현황: ${businesses.map(b=>`${b.name}(${b.progress}%)`).join(",")}`;
-    try {
-      const r = await callClaude(newMsgs.map(m=>({role:m.role,content:m.content})),
-        `당신은 Enoch의 개인사업자 전략 컨설턴트입니다. ${ctx}. 간결하고 실용적으로 한국어로 답변하세요.`, 800);
-      setChatMsgs([...newMsgs,{role:"assistant",content:r}]);
-    } catch(e) { setChatMsgs([...newMsgs,{role:"assistant",content:`⚠️ ${e.message}`}]); }
-    setChatLoading(false);
+  const cycleStatus = (id) => {
+    const order = ["planned","building","active"];
+    setAgents(agents.map(a => {
+      if (a.id !== id) return a;
+      const next = order[(order.indexOf(a.status) + 1) % order.length];
+      return { ...a, status: next };
+    }));
   };
-
-  useEffect(() => { if(chatRef.current) chatRef.current.scrollTop=chatRef.current.scrollHeight; },[chatMsgs]);
-
-  // 사업 추가 폼
-  const [newBiz, setNewBiz] = useState({name:"",emoji:"🚀",color:C.gold,note:""});
-  const addBiz = () => {
-    if (!newBiz.name.trim()) return;
-    const nb = { id:Date.now(), name:newBiz.name, emoji:newBiz.emoji, color:newBiz.color, progress:0,
-      kpis:[{label:"상태",value:"준비중"},{label:"단계",value:"기획"},{label:"기타",value:"-"}],
-      milestones:[{text:"초기 기획 완료",done:false}], note:newBiz.note };
-    setBusinesses([...businesses,nb]);
-    setShowAdd(false); setNewBiz({name:"",emoji:"🚀",color:C.gold,note:""});
-  };
-
-  // ── 상세 뷰 ──────────────────────────────────────────────────
-  if (sel) return (
-    <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-      <div style={{ padding:"12px 16px", borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", gap:10, background:C.surface, flexShrink:0 }}>
-        <button onClick={()=>{setSelected(null);setEditMode(false);setShowChat(false);}} style={{ background:"none",border:"none",color:C.textMuted,cursor:"pointer",padding:4,display:"flex" }}><Ic n="back" s={20}/></button>
-        {editMode
-          ? <input value={sel.name} onChange={e=>updateBiz(sel.id,"name",e.target.value)} style={{ flex:1,background:C.bg,border:`1px solid ${C.gold}`,borderRadius:8,color:C.text,padding:"6px 10px",fontSize:15,fontWeight:700,outline:"none",fontFamily:"inherit" }}/>
-          : <span style={{ fontSize:15,fontWeight:700,color:C.text,flex:1 }}>{sel.emoji} {sel.name}</span>
-        }
-        <button onClick={()=>setShowChat(!showChat)} style={{ background:showChat?C.goldDim:"transparent",border:`1px solid ${showChat?C.gold:C.border}`,borderRadius:8,padding:"6px 11px",color:showChat?C.gold:C.textMuted,cursor:"pointer",fontSize:11,fontFamily:"inherit" }}>💬 AI 대화</button>
-        <button onClick={()=>setEditMode(!editMode)} style={{ background:editMode?C.goldDim:"transparent",border:`1px solid ${editMode?C.gold:C.border}`,borderRadius:8,padding:"6px 11px",color:editMode?C.gold:C.textMuted,cursor:"pointer",fontSize:11,fontFamily:"inherit" }}>{editMode?"✓ 완료":"✏️ 수정"}</button>
-      </div>
-
-      <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
-        {/* 메인 내용 */}
-        <div style={{ flex:1, overflowY:"auto", padding:14 }}>
-          {/* 최종 목표 */}
-          <div style={{ background:C.surface,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${sel.color}55`,borderLeft:`4px solid ${sel.color}` }}>
-            <div style={{ fontSize:10,color:sel.color,fontWeight:700,letterSpacing:1,marginBottom:6 }}>🎯 최종 수익화 목표</div>
-            {editMode
-              ? <textarea value={sel.goal||""} onChange={e=>updateBiz(sel.id,"goal",e.target.value)} rows={2}
-                  style={{ width:"100%",background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"8px 10px",fontSize:12,outline:"none",fontFamily:"inherit",resize:"none",lineHeight:1.65 }}/>
-              : <div style={{ fontSize:13,color:C.text,lineHeight:1.7,fontWeight:500 }}>{sel.goal||"목표를 설정해주세요"}</div>
-            }
-          </div>
-
-          {/* 진행률 (마일스톤 자동 계산) */}
-          <div style={{ background:C.surface,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${C.border}` }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8 }}>
-              <span style={{ fontSize:12,color:C.textMuted }}>달성률 (체크리스트 기반 자동)</span>
-              <span style={{ fontSize:18,fontWeight:700,color:sc(sel.progress) }}>{sel.progress}%</span>
-            </div>
-            <div style={{ height:10,background:C.border,borderRadius:5 }}>
-              <div style={{ height:"100%",borderRadius:5,background:`linear-gradient(90deg,${sel.color}88,${sel.color})`,width:`${sel.progress}%`,transition:"width .8s" }}/>
-            </div>
-            <div style={{ fontSize:10,color:C.textDim,marginTop:6 }}>
-              {sel.milestones?.filter(m=>m.done).length||0} / {sel.milestones?.length||0} 단계 완료
-            </div>
-          </div>
-
-          {/* KPI */}
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12 }}>
-            {sel.kpis.map((k,i) => (
-              <div key={i} style={{ background:C.surface,borderRadius:10,padding:"10px 6px",textAlign:"center",border:`1px solid ${C.border}` }}>
-                {editMode
-                  ? <>
-                    <input value={k.value} onChange={e=>updateKpi(sel.id,i,"value",e.target.value)} style={{ width:"100%",background:C.bg,border:"none",borderBottom:`1px solid ${C.gold}`,color:sel.color,fontSize:13,fontWeight:700,textAlign:"center",outline:"none",fontFamily:"inherit",marginBottom:4 }}/>
-                    <input value={k.label} onChange={e=>updateKpi(sel.id,i,"label",e.target.value)} style={{ width:"100%",background:"transparent",border:"none",color:C.textDim,fontSize:10,textAlign:"center",outline:"none",fontFamily:"inherit" }}/>
-                  </>
-                  : <>
-                    <div style={{ fontSize:14,fontWeight:700,color:sel.color }}>{k.value}</div>
-                    <div style={{ fontSize:10,color:C.textDim,marginTop:2 }}>{k.label}</div>
-                  </>
-                }
-              </div>
-            ))}
-          </div>
-
-          {/* 스텝업 체크리스트 */}
-          <div style={{ background:C.surface,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${C.border}` }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12 }}>
-              <div>
-                <div style={{ fontSize:11,color:C.textMuted,fontWeight:700 }}>📋 스텝업 체크리스트</div>
-                <div style={{ fontSize:10,color:C.textDim,marginTop:2 }}>체크 완료 시 달성률 자동 반영</div>
-              </div>
-              {editMode && <button onClick={()=>addMilestone(sel.id)} style={{ background:C.goldDim,border:`1px solid ${C.gold}`,borderRadius:6,padding:"4px 9px",color:C.gold,cursor:"pointer",fontSize:11,fontFamily:"inherit",display:"flex",alignItems:"center",gap:4 }}>+ 단계 추가</button>}
-            </div>
-            {sel.milestones.map((m,i) => (
-              <div key={i} style={{ display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:`1px solid ${C.border}`,opacity:m.done?0.7:1,transition:"opacity .2s" }}>
-                {/* 단계 번호 */}
-                <div style={{ fontSize:10,color:m.done?sel.color:C.textDim,fontWeight:700,width:22,textAlign:"right",flexShrink:0 }}>{i+1}</div>
-                {/* 체크박스 */}
-                <div onClick={()=>!editMode&&toggleMs(sel.id,i)}
-                  style={{ width:22,height:22,borderRadius:5,border:`2px solid ${m.done?sel.color:C.border}`,background:m.done?sel.color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#1a1a18",cursor:editMode?"default":"pointer",transition:"all .15s" }}>
-                  {m.done&&<Ic n="check" s={13}/>}
-                </div>
-                {editMode
-                  ? <input value={m.text} onChange={e=>updateMs(sel.id,i,e.target.value)}
-                      style={{ flex:1,background:"transparent",border:"none",borderBottom:`1px solid ${C.border}`,color:C.text,fontSize:13,outline:"none",fontFamily:"inherit",padding:"2px 0" }}/>
-                  : <span style={{ flex:1,fontSize:13,color:m.done?C.textDim:C.text,textDecoration:m.done?"line-through":"none" }}>{m.text}</span>
-                }
-                {editMode && <button onClick={()=>removeMs(sel.id,i)} style={{ background:"none",border:"none",color:C.red,cursor:"pointer",padding:2,display:"flex",flexShrink:0 }}><Ic n="x" s={14}/></button>}
-              </div>
-            ))}
-            {/* 완료 메시지 */}
-            {sel.milestones.length > 0 && sel.milestones.every(m=>m.done) && (
-              <div style={{ marginTop:12,textAlign:"center",fontSize:13,color:C.green,fontWeight:700 }}>
-                🎉 모든 단계 완료! 최종 목표 달성!
-              </div>
-            )}
-          </div>
-
-          {/* 메모 */}
-          <div style={{ background:C.surface,borderRadius:12,padding:14,marginBottom:12,border:`1px solid ${C.border}`,borderLeft:`4px solid ${sel.color}` }}>
-            <div style={{ fontSize:10,color:C.textDim,marginBottom:6 }}>메모</div>
-            {editMode
-              ? <textarea value={sel.note} onChange={e=>updateBiz(sel.id,"note",e.target.value)} rows={3} style={{ width:"100%",background:"transparent",border:"none",color:C.text,fontSize:13,outline:"none",fontFamily:"inherit",resize:"none",lineHeight:1.65 }}/>
-              : <div style={{ fontSize:13,color:C.textMuted,lineHeight:1.65 }}>{sel.note}</div>
-            }
-          </div>
-
-          {/* 삭제 버튼 */}
-          {editMode && (
-            <button onClick={()=>{if(confirm(`"${sel.name}"을 삭제할까요?`))removeBiz(sel.id);}} style={{ width:"100%",padding:"11px 0",background:C.redDim,border:`1px solid ${C.red}44`,borderRadius:10,color:C.red,cursor:"pointer",fontSize:13,fontFamily:"inherit",marginBottom:20 }}>
-              🗑️ 이 사업 삭제
-            </button>
-          )}
-        </div>
-
-        {/* AI 대화 패널 */}
-        {showChat && (
-          <div style={{ width:280,borderLeft:`1px solid ${C.border}`,display:"flex",flexDirection:"column",background:C.surface,flexShrink:0 }}>
-            <div style={{ padding:"10px 12px",borderBottom:`1px solid ${C.border}`,fontSize:11,color:C.gold,fontWeight:700 }}>🤖 AI와 대화하기</div>
-            <div ref={chatRef} style={{ flex:1,overflowY:"auto",padding:10,display:"flex",flexDirection:"column",gap:8 }}>
-              {chatMsgs.length===0 && <div style={{ fontSize:12,color:C.textDim,textAlign:"center",marginTop:20 }}>사업에 대해 무엇이든<br/>물어보세요!</div>}
-              {chatMsgs.map((m,i) => (
-                <div key={i} style={{ display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start" }}>
-                  <div style={{ maxWidth:"85%",padding:"8px 10px",borderRadius:10,background:m.role==="user"?C.gold:C.bg,color:m.role==="user"?"#1a1a18":C.text,fontSize:12,lineHeight:1.6,whiteSpace:"pre-wrap" }}>{m.content}</div>
-                </div>
-              ))}
-              {chatLoading && <div style={{ fontSize:11,color:C.textMuted,display:"flex",gap:4,alignItems:"center" }}><div style={{ animation:"spin 1s linear infinite" }}><Ic n="spin" s={11}/></div>생각 중...</div>}
-            </div>
-            <div style={{ padding:10,borderTop:`1px solid ${C.border}`,display:"flex",gap:6 }}>
-              <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="메시지..." style={{ flex:1,background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,padding:"8px 10px",fontSize:12,outline:"none",fontFamily:"inherit" }}/>
-              <button onClick={sendChat} disabled={!chatInput.trim()||chatLoading} style={{ width:34,height:34,borderRadius:8,background:chatInput.trim()&&!chatLoading?C.gold:C.border,border:"none",color:chatInput.trim()&&!chatLoading?"#1a1a18":C.textDim,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}><Ic n="send" s={13}/></button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 
   // ── 목록 뷰 ──────────────────────────────────────────────────
   return (
-    <div style={{ flex:1, overflowY:"auto", padding:14 }}>
-      {/* 전체 진행률 */}
-      <div style={{ background:`linear-gradient(135deg,${C.surface},#2e2a22)`,borderRadius:14,padding:18,marginBottom:14,border:`1px solid ${C.border}` }}>
-        <div style={{ fontSize:11,color:C.textDim,letterSpacing:1,marginBottom:8 }}>DOUBLE Y SPACE · 전체 진행률</div>
-        <div style={{ display:"flex",alignItems:"flex-end",gap:8,marginBottom:10 }}>
-          <span style={{ fontSize:36,fontWeight:800,color:C.gold,lineHeight:1 }}>{overall}</span>
-          <span style={{ fontSize:16,color:C.bronze,paddingBottom:3 }}>%</span>
-          <span style={{ fontSize:12,color:C.textDim,paddingBottom:3,marginLeft:4 }}>활성 {businesses.length}개</span>
+    <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+      <div style={{ flex:1, overflowY:"auto", padding:14 }}>
+
+        {/* 요약 카드 */}
+        <div style={{ background:`linear-gradient(135deg,${C.surface},#2a2520)`, borderRadius:14, padding:16, marginBottom:14, border:`1px solid ${C.border}` }}>
+          <div style={{ fontSize:10, color:C.textDim, letterSpacing:1, marginBottom:10 }}>DOUBLE Y · 에이전트 현황</div>
+          <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+            {[
+              { label:"운영중",  value:activeCount,  color:"#00d4aa" },
+              { label:"제작중",  value:buildCount,   color:C.gold },
+              { label:"기획중",  value:agents.filter(a=>a.status==="planned").length, color:C.textDim },
+              { label:"오늘 실행", value:todayCount, color:C.blue },
+            ].map((s,i) => (
+              <div key={i} style={{ flex:1, background:C.bg, borderRadius:10, padding:"10px 6px", textAlign:"center", border:`1px solid ${C.border}` }}>
+                <div style={{ fontSize:18, fontWeight:800, color:s.color }}>{s.value}</div>
+                <div style={{ fontSize:9, color:C.textDim, marginTop:2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+          {/* 오늘 진행률 */}
+          <div style={{ fontSize:10, color:C.textMuted, marginBottom:5 }}>오늘 실행률</div>
+          <div style={{ height:6, background:C.border, borderRadius:3 }}>
+            <div style={{ height:"100%", borderRadius:3, background:`linear-gradient(90deg,${C.bronze},${C.gold})`,
+              width:`${agents.length>0?Math.round(todayCount/agents.filter(a=>a.status==="active").length*100)||0:0}%`,
+              transition:"width .5s" }}/>
+          </div>
         </div>
-        <div style={{ height:8,background:C.border,borderRadius:4 }}><div style={{ height:"100%",borderRadius:4,background:`linear-gradient(90deg,${C.bronze},${C.gold})`,width:`${overall}%`,transition:"width 1s" }}/></div>
+
+        {/* 에이전트 카드 목록 */}
+        {agents.map(agent => {
+          const sc = STATUS_CONFIG[agent.status];
+          const ran = todayRun[agent.id];
+          return (
+            <div key={agent.id} style={{ background:C.surface, borderRadius:14, padding:14, marginBottom:10,
+              border:`1px solid ${ran ? agent.color+"55" : C.border}`,
+              borderLeft:`4px solid ${ran ? agent.color : sc.color}`,
+              opacity: agent.status==="planned" ? 0.8 : 1 }}>
+
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+                <span style={{ fontSize:24 }}>{agent.emoji}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+                    <span style={{ fontSize:14, fontWeight:700, color:C.text }}>{agent.name}</span>
+                    {/* 상태 배지 - 탭하면 변경 */}
+                    <button onClick={()=>cycleStatus(agent.id)} style={{ background:sc.bg, border:`1px solid ${sc.color}33`,
+                      borderRadius:10, padding:"2px 8px", fontSize:9, color:sc.color,
+                      cursor:"pointer", fontFamily:"inherit", fontWeight:700 }}>
+                      {sc.icon} {sc.label}
+                    </button>
+                  </div>
+                  <div style={{ fontSize:10, color:C.textDim, marginTop:2 }}>{agent.desc}</div>
+                </div>
+              </div>
+
+              {/* 스케줄 & 수익 */}
+              <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+                <div style={{ flex:1, background:C.surface2, borderRadius:8, padding:"6px 9px" }}>
+                  <div style={{ fontSize:9, color:C.textDim }}>📅 스케줄</div>
+                  <div style={{ fontSize:11, color:C.text, marginTop:2 }}>{agent.schedule}</div>
+                </div>
+                <div style={{ flex:1, background:C.surface2, borderRadius:8, padding:"6px 9px" }}>
+                  <div style={{ fontSize:9, color:C.textDim }}>💰 수익 모델</div>
+                  <div style={{ fontSize:11, color:C.gold, marginTop:2 }}>{agent.revenue}</div>
+                </div>
+              </div>
+
+              {/* 태그 */}
+              <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:10 }}>
+                {agent.tags.map((t,i) => (
+                  <span key={i} style={{ fontSize:10, background:`${agent.color}18`,
+                    color:agent.color, border:`1px solid ${agent.color}33`,
+                    padding:"2px 8px", borderRadius:10 }}>{t}</span>
+                ))}
+              </div>
+
+              {/* 하단 버튼 */}
+              <div style={{ display:"flex", gap:8 }}>
+                {/* 오늘 실행 체크 */}
+                <button onClick={()=>toggleRun(agent.id)} style={{
+                  flex:1, padding:"8px 0", borderRadius:9,
+                  background: ran ? `${agent.color}22` : "transparent",
+                  border:`1px solid ${ran ? agent.color : C.border}`,
+                  color: ran ? agent.color : C.textMuted,
+                  cursor:"pointer", fontSize:11, fontFamily:"inherit", fontWeight:ran?700:400,
+                  display:"flex", alignItems:"center", justifyContent:"center", gap:5,
+                }}>
+                  <div style={{ width:14, height:14, borderRadius:3,
+                    border:`1.5px solid ${ran ? agent.color : C.border}`,
+                    background: ran ? agent.color : "transparent",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    color:C.bg, flexShrink:0 }}>
+                    {ran && <Ic n="check" s={10}/>}
+                  </div>
+                  {ran ? "오늘 실행 완료" : "오늘 실행 체크"}
+                </button>
+
+                {/* 에이전트 이동 */}
+                {agent.url ? (
+                  <a href={agent.url} target="_blank" rel="noopener noreferrer"
+                    style={{ textDecoration:"none", flex:1 }}>
+                    <div style={{ padding:"8px 0", borderRadius:9, textAlign:"center",
+                      background:`${agent.color}18`, border:`1px solid ${agent.color}44`,
+                      color:agent.color, fontSize:11, fontWeight:700 }}>
+                      에이전트 열기 →
+                    </div>
+                  </a>
+                ) : (
+                  <button style={{ flex:1, padding:"8px 0", borderRadius:9,
+                    background:"transparent", border:`1px solid ${C.border}`,
+                    color:C.textDim, cursor:"not-allowed", fontSize:11, fontFamily:"inherit" }}>
+                    {agent.status==="planned" ? "기획 예정" : "URL 미설정"}
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* 추가 제안 섹션 */}
+        <div style={{ marginBottom:10 }}>
+          <button onClick={()=>setShowSuggest(!showSuggest)} style={{
+            width:"100%", padding:"11px 0", background:"transparent",
+            border:`2px dashed ${C.border}`, borderRadius:12,
+            color:C.textDim, cursor:"pointer", fontSize:13,
+            fontFamily:"inherit", display:"flex", alignItems:"center",
+            justifyContent:"center", gap:8 }}>
+            <Ic n="plus" s={15}/>
+            {showSuggest ? "추천 접기" : "추가 에이전트 제안 보기"}
+          </button>
+        </div>
+
+        {showSuggest && (
+          <div style={{ background:C.surface, borderRadius:14, padding:14, marginBottom:20,
+            border:`1px solid ${C.goldDim}` }}>
+            <div style={{ fontSize:11, color:C.gold, fontWeight:700, marginBottom:12 }}>
+              💡 추가 크리에이티브 에이전트 제안
+            </div>
+            {SUGGESTED_AGENTS.map((sa, i) => (
+              <div key={i} style={{ background:C.surface2, borderRadius:10, padding:12,
+                marginBottom:8, border:`1px solid ${C.border}` }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
+                  <span style={{ fontSize:20 }}>{sa.emoji}</span>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{sa.name}</div>
+                    <div style={{ fontSize:10, color:C.gold }}>{sa.revenue}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize:11, color:C.textMuted, lineHeight:1.6 }}>{sa.reason}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      {/* 사업 카드 */}
-      {businesses.map(biz => (
-        <div key={biz.id} onClick={()=>setSelected(biz.id)} style={{ background:C.surface,borderRadius:14,padding:16,marginBottom:10,border:`1px solid ${C.border}`,cursor:"pointer",WebkitTapHighlightColor:"transparent" }}>
-          <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:8 }}>
-            <span style={{ fontSize:24 }}>{biz.emoji}</span>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:14,fontWeight:700,color:C.text }}>{biz.name}</div>
-              <div style={{ fontSize:10,color:C.textDim }}>{biz.milestones.filter(m=>m.done).length}/{biz.milestones.length} 단계 완료</div>
-            </div>
-            <div style={{ fontSize:20,fontWeight:800,color:sc(biz.progress) }}>{biz.progress}%</div>
-          </div>
-          {/* 목표 한줄 표시 */}
-          {biz.goal && (
-            <div style={{ fontSize:11,color:biz.color,marginBottom:8,lineHeight:1.5,paddingLeft:4,borderLeft:`2px solid ${biz.color}44` }}>
-              🎯 {biz.goal}
-            </div>
-          )}
-          <div style={{ height:6,background:C.border,borderRadius:3,marginBottom:10 }}><div style={{ height:"100%",borderRadius:3,background:`linear-gradient(90deg,${biz.color}88,${biz.color})`,width:`${biz.progress}%`,transition:"width .8s" }}/></div>
-          <div style={{ display:"flex",gap:6 }}>
-            {biz.kpis.map((k,i) => <div key={i} style={{ flex:1,background:C.bg,borderRadius:7,padding:"7px 6px",textAlign:"center" }}><div style={{ fontSize:11,fontWeight:700,color:biz.color }}>{k.value}</div><div style={{ fontSize:9,color:C.textDim,marginTop:1 }}>{k.label}</div></div>)}
-          </div>
-        </div>
-      ))}
-
-      {/* 사업 추가 버튼 */}
-      <button onClick={()=>setShowAdd(true)} style={{ width:"100%",padding:"13px 0",background:"transparent",border:`2px dashed ${C.border}`,borderRadius:14,color:C.textDim,cursor:"pointer",fontSize:13,fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:20 }}>
-        <Ic n="plus" s={16}/> 새 사업 추가
-      </button>
-
-      {/* 사업 추가 모달 */}
-      {showAdd && (
-        <div style={{ position:"fixed",inset:0,background:"#000b",zIndex:100,display:"flex",alignItems:"flex-end" }} onClick={e=>e.target===e.currentTarget&&setShowAdd(false)}>
-          <div style={{ width:"100%",background:C.surface,borderRadius:"20px 20px 0 0",padding:20,paddingBottom:"calc(20px + env(safe-area-inset-bottom,0px))",maxHeight:"80vh",overflowY:"auto" }}>
-            <div style={{ fontSize:16,fontWeight:700,color:C.text,marginBottom:16 }}>새 사업 추가</div>
-            <div style={{ marginBottom:12 }}>
-              <div style={{ fontSize:11,color:C.textDim,marginBottom:5 }}>사업명 *</div>
-              <input value={newBiz.name} onChange={e=>setNewBiz({...newBiz,name:e.target.value})} placeholder="사업 이름" style={{ width:"100%",background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,padding:"11px 13px",fontSize:14,outline:"none",fontFamily:"inherit",boxSizing:"border-box" }}/>
-            </div>
-            <div style={{ marginBottom:12 }}>
-              <div style={{ fontSize:11,color:C.textDim,marginBottom:5 }}>이모지</div>
-              <div style={{ display:"flex",flexWrap:"wrap",gap:8 }}>
-                {EMOJI_LIST.map(e => <button key={e} onClick={()=>setNewBiz({...newBiz,emoji:e})} style={{ fontSize:22,background:newBiz.emoji===e?C.goldDim:"transparent",border:`1px solid ${newBiz.emoji===e?C.gold:C.border}`,borderRadius:8,padding:"4px 8px",cursor:"pointer" }}>{e}</button>)}
-              </div>
-            </div>
-            <div style={{ marginBottom:12 }}>
-              <div style={{ fontSize:11,color:C.textDim,marginBottom:5 }}>색상</div>
-              <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}>
-                {COLOR_LIST.map(c => <button key={c} onClick={()=>setNewBiz({...newBiz,color:c})} style={{ width:28,height:28,borderRadius:"50%",background:c,border:`3px solid ${newBiz.color===c?"white":"transparent"}`,cursor:"pointer" }}/>)}
-              </div>
-            </div>
-            <div style={{ marginBottom:16 }}>
-              <div style={{ fontSize:11,color:C.textDim,marginBottom:5 }}>메모</div>
-              <textarea value={newBiz.note} onChange={e=>setNewBiz({...newBiz,note:e.target.value})} placeholder="사업 설명..." rows={2} style={{ width:"100%",background:C.bg,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,padding:"10px 13px",fontSize:13,outline:"none",fontFamily:"inherit",resize:"none",boxSizing:"border-box" }}/>
-            </div>
-            <button onClick={addBiz} disabled={!newBiz.name.trim()} style={{ width:"100%",padding:"13px 0",background:newBiz.name.trim()?`linear-gradient(135deg,${C.bronze},${C.gold})`:C.border,border:"none",borderRadius:12,color:newBiz.name.trim()?"#1a1a18":C.textDim,fontSize:15,fontWeight:700,cursor:newBiz.name.trim()?"pointer":"not-allowed",fontFamily:"inherit" }}>
-              사업 추가하기
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -797,7 +674,7 @@ export default function App() {
     { id:"assistant", icon:<Ic n="bot" s={18}/>, label:"AI 비서" },
     { id:"calendar",  icon:<Ic n="cal" s={18}/>, label:"캘린더" },
     { id:"planner",   icon:<Ic n="pdf" s={18}/>, label:"플래너" },
-    { id:"dashboard", icon:<Ic n="chart" s={18}/>, label:"사업현황" },
+    { id:"agent",     icon:<Ic n="zap"   s={18}/>, label:"에이전트" },
     { id:"backup",    icon:<Ic n="cloud" s={18}/>, label:"백업" },
   ];
 
@@ -817,7 +694,7 @@ export default function App() {
         {tab==="assistant" && <AssistantTab todos={todos} setTodos={setTodos}/>}
         {tab==="calendar"  && <CalendarTab onEventsLoaded={setGcalEvents} externalToken={gcalToken} onTokenChange={handleTokenChange}/>}
         {tab==="planner"   && <PlannerTab gcalEvents={gcalEvents}/>}
-        {tab==="dashboard" && <DashboardTab/>}
+        {tab==="agent"     && <AgentTab/>}
         {tab==="backup"    && <BackupTab gcalToken={gcalToken}/>}
       </div>
       <div style={{ background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",flexShrink:0,paddingBottom:"env(safe-area-inset-bottom,0px)" }}>
