@@ -1,20 +1,4 @@
-{
-  "name": "doubley-agent-studio",
-  "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.2",
-    "vite-plugin-pwa": "^0.20.5"
-  }
-}
+# Vercel 대시보드 > Settings > Environment Variables 에서 설정하세요
+# 이 파일은 절대 GitHub에 올리지 마세요!
+
+VITE_ANTHROPIC_API_KEY=your_anthropic_api_key_here
