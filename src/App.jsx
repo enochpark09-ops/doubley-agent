@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import CalendarTab from "./CalendarTab.jsx";
 import PlannerTab from "./PlannerTab.jsx";
 import BackupTab from "./BackupTab.jsx";
+import PlanningDeptTab from "./PlanningDeptTab.jsx";
 
 const C = {
   bg: "#1a1a18", surface: "#242422", surface2: "#2a2a27", border: "#3a3a36",
@@ -756,6 +757,7 @@ export default function App() {
     { id:"assistant", icon:<Ic n="bot" s={18}/>, label:"AI 비서" },
     { id:"calendar",  icon:<Ic n="cal" s={18}/>, label:"캘린더" },
     { id:"planner",   icon:<Ic n="pdf" s={18}/>, label:"플래너" },
+    { id:"planning",  icon:<Ic n="target" s={18}/>, label:"기획부" },
     { id:"agent",     icon:<Ic n="chart" s={18}/>, label:"에이전트" },
     { id:"creator",   icon:<Ic n="target" s={18}/>, label:"크리에이터" },
     { id:"backup",    icon:<Ic n="cloud" s={18}/>, label:"백업" },
@@ -777,6 +779,7 @@ export default function App() {
         {tab==="assistant" && <AssistantTab todos={todos} setTodos={setTodos}/>}
         {tab==="calendar"  && <CalendarTab onEventsLoaded={setGcalEvents} externalToken={gcalToken} onTokenChange={handleTokenChange}/>}
         {tab==="planner"   && <PlannerTab gcalEvents={gcalEvents}/>}
+        {tab==="planning"  && <PlanningDeptTab/>}
         {tab==="agent"     && <AgentTab/>}
         {tab==="creator"   && <CreatorTab/>}
         {tab==="backup"    && <BackupTab gcalToken={gcalToken}/>}
