@@ -322,11 +322,27 @@ export default function PlanningDeptTab() {
               )}
               {result && !result.error && a.key === "planner" && result.topics && (
                 <div style={{ background: C.bg, borderRadius: 8, padding: 10, marginTop: 6 }}>
-                  <div style={{ fontSize: 10, color: C.pink, fontWeight: 700, marginBottom: 6 }}>🧠 오늘의 안건</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <div style={{ fontSize: 10, color: C.pink, fontWeight: 700 }}>🧠 오늘의 안건</div>
+                    <span style={{ fontSize: 8, color: C.textDim }}>탭하여 수정 가능</span>
+                  </div>
                   {result.topics.slice(0, 3).map((t, i) => (
-                    <div key={i} style={{ fontSize: 11, color: C.text, padding: "4px 0", borderBottom: i < 2 ? `1px solid ${C.border}` : "none" }}>
-                      <span style={{ color: C.gold, fontWeight: 700, marginRight: 6 }}>#{i + 1}</span>
-                      {t.title || t.pipeline || "안건"}
+                    <div key={i} style={{ padding: "6px 0", borderBottom: i < 2 ? `1px solid ${C.border}` : "none" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ color: C.gold, fontWeight: 700, fontSize: 11 }}>#{i + 1}</span>
+                        <input type="text" value={t.title || ""} onChange={e => {
+                          const updated = { ...runResults };
+                          updated.planner.topics[i].title = e.target.value;
+                          setRunResults({ ...updated });
+                        }} style={{ flex: 1, background: "transparent", border: "none", borderBottom: `1px dashed ${C.border}`, color: C.text, fontSize: 11, fontWeight: 600, padding: "2px 4px", outline: "none", fontFamily: "inherit" }} />
+                      </div>
+                      {t.outline && (
+                        <textarea value={t.outline} onChange={e => {
+                          const updated = { ...runResults };
+                          updated.planner.topics[i].outline = e.target.value;
+                          setRunResults({ ...updated });
+                        }} style={{ width: "100%", marginTop: 4, background: "transparent", border: `1px dashed ${C.border}`, borderRadius: 4, color: C.textMuted, fontSize: 10, padding: "4px 6px", outline: "none", fontFamily: "inherit", resize: "vertical", minHeight: 36, lineHeight: 1.5 }} />
+                      )}
                     </div>
                   ))}
                 </div>

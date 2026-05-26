@@ -3,6 +3,7 @@ import CalendarTab from "./CalendarTab.jsx";
 import PlannerTab from "./PlannerTab.jsx";
 import BackupTab from "./BackupTab.jsx";
 import PlanningDeptTab from "./PlanningDeptTab.jsx";
+import StrategistTab from "./StrategistTab.jsx";
 
 const C = {
   bg: "#1a1a18", surface: "#242422", surface2: "#2a2a27", border: "#3a3a36",
@@ -741,7 +742,7 @@ const CreatorTab = () => {
 // 메인 앱
 // ══════════════════════════════════════════════════════════════
 export default function App() {
-  const [tab, setTab] = useState("assistant");
+  const [tab, setTab] = useState("strategist");
   const [gcalEvents, setGcalEvents] = useState([]);
   const [gcalToken, setGcalToken] = useState(() => {
     return sessionStorage.getItem("gtoken") || null;
@@ -754,7 +755,7 @@ export default function App() {
   const [todos, setTodos] = useState([]);
 
   const tabs = [
-    { id:"assistant", icon:<Ic n="bot" s={18}/>, label:"AI 비서" },
+    { id:"strategist", icon:<Ic n="target" s={18}/>, label:"전략기획" },
     { id:"calendar",  icon:<Ic n="cal" s={18}/>, label:"캘린더" },
     { id:"planner",   icon:<Ic n="pdf" s={18}/>, label:"플래너" },
     { id:"planning",  icon:<Ic n="target" s={18}/>, label:"기획부" },
@@ -776,7 +777,7 @@ export default function App() {
         </div>
       </div>
       <div style={{ flex:1,overflow:"hidden",display:"flex",flexDirection:"column" }}>
-        {tab==="assistant" && <AssistantTab todos={todos} setTodos={setTodos}/>}
+        {tab==="strategist" && <StrategistTab/>}
         {tab==="calendar"  && <CalendarTab onEventsLoaded={setGcalEvents} externalToken={gcalToken} onTokenChange={handleTokenChange}/>}
         {tab==="planner"   && <PlannerTab gcalEvents={gcalEvents}/>}
         {tab==="planning"  && <PlanningDeptTab/>}
