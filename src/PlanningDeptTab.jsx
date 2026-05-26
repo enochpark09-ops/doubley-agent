@@ -176,11 +176,16 @@ export default function PlanningDeptTab() {
   };
 
   // ── 실행 상태 ──
-  const [runStatus, setRunStatus] = useState({ researcher: "idle", planner: "idle", revenue: "idle", briefing: "idle" });
-  const [runResults, setRunResults] = useState({ researcher: null, planner: null, revenue: null, briefing: null });
-  const [runLog, setRunLog] = useState([]);
+  const [runStatus, setRunStatus] = useState(() => ls.get("planning_status_v1", { researcher: "idle", planner: "idle", revenue: "idle", briefing: "idle" }));
+  const [runResults, setRunResults] = useState(() => ls.get("planning_results_v1", { researcher: null, planner: null, revenue: null, briefing: null }));
+  const [runLog, setRunLog] = useState(() => ls.get("planning_log_v1", []));
   const [isRunning, setIsRunning] = useState(false);
   const [lastRun, setLastRun] = useState(() => ls.get("planning_last_run", null));
+
+  // 결과가 바뀔 때마다 localStorage에 저장
+  useEffect(() => { ls.set("planning_results_v1", runResults); }, [runResults]);
+  useEffect(() => { ls.set("planning_status_v1", runStatus); }, [runStatus]);
+  useEffect(() => { ls.set("planning_log_v1", runLog); }, [runLog]);
 
   const addLog = (msg) => setRunLog(prev => [...prev, { time: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }), msg }]);
 
@@ -211,18 +216,11 @@ export default function PlanningDeptTab() {
     setRunLog([]);
     setRunResults({ researcher: null, planner: null, revenue: null, briefing: null });
     setRunStatus({ researcher: "idle", planner: "idle", revenue: "idle", briefing: "idle" });
-    addLog("🚀 기획·분석부 가동 시작");
+    addLog("🚀 기획·분석부 가동 시작 (이전 결과 삭제됨)");
 
-    // Step 1: 리서처
     const rr = await runAgent("researcher", "리서처", "🔍");
-
-    // Step 2: 기획자
     const pr = await runAgent("planner", "콘텐츠 기획자", "🧠");
-
-    // Step 3: 수익전략가
     const rv = await runAgent("revenue", "수익 전략가", "💰");
-
-    // Step 4: 브리핑 통합
     const br = await runAgent("briefing", "모닝브리핑 통합", "📋");
 
     addLog(br ? "✅ 전체 완료 — 카카오톡 확인하세요!" : "⚠️ 일부 에이전트 실행 실패");
@@ -394,6 +392,112 @@ export default function PlanningDeptTab() {
         </div>
 
         <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
+
+        {/* ── 제작부 연동 가이드 ── */}
+        {runResults.planner && !runResults.planner.error && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+              <span>⚡</span> 다음 단계: 제작부로 전달
+            </div>
+
+            <div style={{ background: C.surface, borderRadius: 12, padding: 14, marginBottom: 8, border: `1px solid ${C.goldDim}` }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, marginBottom: 10 }}>CEO 컨펌 후 제작부에 전달하는 방법</div>
+
+              {/* Step 1: 안건 선택 */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 10, padding: "8px 10px", borderRadius: 8, background: `${C.blue}11`, borderLeft: `3px solid ${C.blue}` }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, minWidth: 50 }}>Step 1</div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: C.text }}>안건 선택 (위에서 확인)</div>
+                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>기획자가 생성한 안건 3개 중 오늘 발행할 2개를 선택합니다.</div>
+                </div>
+              </div>
+
+              {/* Step 2: 편집장에게 전달 */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 10, padding: "8px 10px", borderRadius: 8, background: `${C.green}11`, borderLeft: `3px solid ${C.green}` }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.green, minWidth: 50 }}>Step 2</div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: C.text }}>편집장 에이전트에게 초안 요청</div>
+                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 2, lineHeight: 1.6 }}>
+                    현재 편집장이 미완성이므로, 아래 방법 중 하나를 사용합니다:
+                  </div>
+                  <div style={{ fontSize: 10, color: C.textMuted, marginTop: 6, lineHeight: 1.8, padding: "6px 8px", background: C.bg, borderRadius: 6 }}>
+                    <b style={{ color: C.green }}>방법 A: AI 비서 탭 활용</b><br/>
+                    → 이 앱의 "AI 비서" 탭으로 이동<br/>
+                    → 아래 안건 내용을 복사하여 붙여넣기<br/>
+                    → "이 주제로 블로그 초안 2,000자 작성해줘" 요청<br/><br/>
+                    <b style={{ color: C.green }}>방법 B: content-agent-pwa 활용</b><br/>
+                    → content-agent-pwa 앱의 블로그 탭 사용<br/>
+                    → 안건 제목 + 키워드 입력 → Claude가 초안 생성<br/><br/>
+                    <b style={{ color: C.green }}>방법 C: Claude.ai 직접 활용</b><br/>
+                    → claude.ai에서 직접 안건 내용을 주고 초안 요청
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3: 퍼스널터치 */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 10, padding: "8px 10px", borderRadius: 8, background: `${C.purple}11`, borderLeft: `3px solid ${C.purple}` }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.purple, minWidth: 50 }}>Step 3</div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: C.text }}>CEO 퍼스널터치 + 발행</div>
+                  <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>초안을 읽고 개인 경험·감성을 추가한 후 블로그에 발행합니다.</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 복사 가능한 안건 요약 */}
+            {runResults.planner.topics && (
+              <div style={{ background: C.surface, borderRadius: 12, padding: 14, border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.pink, marginBottom: 8 }}>📋 안건 복사용 (편집장에게 전달)</div>
+                {runResults.planner.topics.map((t, i) => (
+                  <div key={i} style={{ marginBottom: 10, padding: "10px 12px", borderRadius: 8, background: C.bg, border: `1px solid ${C.border}`, cursor: "pointer" }}
+                    onClick={() => {
+                      const text = `[안건 #${i+1}] ${t.title || ""}\n파이프라인: ${t.pipeline || ""}\n각도: ${t.angle || ""}\n키워드: ${(t.keywords || []).join(", ")}\n개요: ${t.outline || ""}\n수익화: ${t.revenue_hint || ""}`;
+                      navigator.clipboard?.writeText(text).then(() => alert(`안건 #${i+1} 복사됨!`)).catch(() => {});
+                    }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.gold }}>#{i+1}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{t.title || `안건 ${i+1}`}</span>
+                      <span style={{ fontSize: 8, color: C.teal, marginLeft: "auto" }}>탭하여 복사</span>
+                    </div>
+                    {t.pipeline && <div style={{ fontSize: 10, color: C.textDim }}>파이프라인: {t.pipeline}</div>}
+                    {t.angle && <div style={{ fontSize: 10, color: C.textDim }}>각도: {t.angle}</div>}
+                    {t.keywords && <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 4 }}>
+                      {t.keywords.map((k, j) => <Badge key={j} text={k} color={C.blue} small />)}
+                    </div>}
+                    {t.outline && <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4, lineHeight: 1.5 }}>{t.outline}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 미래: 편집장 자동화 안내 */}
+            <div style={{ marginTop: 10, padding: 12, borderRadius: 10, background: `${C.green}08`, border: `1px solid ${C.green}22` }}>
+              <div style={{ fontSize: 10, color: C.green, fontWeight: 700, marginBottom: 4 }}>🔮 다음 업그레이드: 편집장 에이전트</div>
+              <div style={{ fontSize: 10, color: C.textDim, lineHeight: 1.5 }}>
+                편집장 에이전트가 완성되면 위의 Step 2가 자동으로 됩니다.<br/>
+                CEO가 안건을 선택하면 → 편집장이 자동으로 초안을 생성 → CEO는 퍼스널터치만 하면 끝.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 결과 초기화 버튼 */}
+        {(runResults.researcher || runResults.planner) && !isRunning && (
+          <div style={{ marginTop: 14, textAlign: "center" }}>
+            <button onClick={() => {
+              if (confirm("기존 기획 결과를 삭제하시겠습니까?")) {
+                setRunResults({ researcher: null, planner: null, revenue: null, briefing: null });
+                setRunStatus({ researcher: "idle", planner: "idle", revenue: "idle", briefing: "idle" });
+                setRunLog([]);
+                ls.set("planning_results_v1", null);
+                ls.set("planning_status_v1", null);
+                ls.set("planning_log_v1", null);
+              }
+            }} style={{ padding: "8px 20px", borderRadius: 8, fontSize: 10, fontFamily: "inherit", cursor: "pointer", border: `1px solid ${C.border}`, background: "transparent", color: C.textDim }}>
+              🗑️ 기존 결과 삭제
+            </button>
+          </div>
+        )}
       </>
     );
   };
