@@ -23,6 +23,33 @@ export const callClaude = async (system, userMessage, maxTokens = 2000) => {
   return data.content?.[0]?.text || "";
 };
 
+// Web search 포함 Claude 호출 (리서처 팩트체크용)
+export const callClaudeWithSearch = async (system, userMessage, maxTokens = 3000) => {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": process.env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-5-20250929",
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: "user", content: userMessage }],
+      tools: [{ type: "web_search_20250305", name: "web_search" }],
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Claude API HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  // web search 결과를 포함한 전체 텍스트 추출
+  const textBlocks = (data.content || []).filter(b => b.type === "text").map(b => b.text);
+  return textBlocks.join("\n") || "";
+};
+
 export const sendKakao = async (text) => {
   const token = process.env.KAKAO_ACCESS_TOKEN;
   if (!token) {
@@ -62,11 +89,11 @@ export const todayKST = () => {
 };
 
 export const PIPELINES = {
-  월: { main: "스포츠 (KBO 파워랭킹)", sub: "경제", novel: "인사팀장 1화" },
-  화: { main: "정치", sub: "라이프", novel: "인사팀장 2화", music: true },
-  수: { main: "경제 + 롱폼", sub: "스포츠", novel: "인사팀장 3화" },
-  목: { main: "스포츠", sub: "자기계발", novel: "인사팀장 4화" },
-  금: { main: "라이프", sub: "경제", novel: "인사팀장 5화 (클리프행어)", music: true },
+  월: { main: "스포츠 (KBO 파워랭킹)", sub: "경제", novel: "웹소설 1화" },
+  화: { main: "정치", sub: "라이프", novel: "웹소설 2화", music: true },
+  수: { main: "경제 + 롱폼", sub: "스포츠", novel: "웹소설 3화" },
+  목: { main: "스포츠", sub: "자기계발", novel: "웹소설 4화" },
+  금: { main: "라이프", sub: "경제", novel: "웹소설 5화 (클리프행어)", music: true },
   토: { main: "— (예약발행)", sub: "—", novel: "휴재 (독자 피드백 분석)" },
   일: { main: "— (휴식)", sub: "—", novel: "다음주 개요 자동생성" },
 };
