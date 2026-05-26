@@ -165,8 +165,15 @@ export default function PlanningDeptTab() {
   const [view, setView] = useState("run");
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [buildState, setBuildState] = useState(() => ls.get("planning_build_v1", {}));
+  // CEO 안건 확정 상태 (피드백 루프)
+  const [confirmedTopics, setConfirmedTopics] = useState(() => ls.get("planning_confirmed_v1", {}));
+  // CEO 피드백 텍스트
+  const [feedbackText, setFeedbackText] = useState("");
+  // 재생성 로딩
+  const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => { ls.set("planning_build_v1", buildState); }, [buildState]);
+  useEffect(() => { ls.set("planning_confirmed_v1", confirmedTopics); }, [confirmedTopics]);
 
   const toggleBuild = (agentId, idx) => {
     setBuildState(prev => {
@@ -409,37 +416,152 @@ export default function PlanningDeptTab() {
 
         <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
 
-        {/* ── 제작부 연동: 편집장 에이전트 ── */}
+        {/* ── PHASE 1: CEO 피드백 루프 (안건 검토 → 수정/재생성 → 확정) ── */}
         {runResults.planner && !runResults.planner.error && runResults.planner.topics && (
           <div style={{ marginTop: 16 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-              <span>⚡</span> 다음 단계: 편집장에게 초안 요청
+              <span>🔄</span> CEO 안건 검토 (수정 → 확정 → 편집장 전달)
             </div>
 
             <div style={{ background: C.surface, borderRadius: 12, padding: 14, marginBottom: 8, border: `1px solid ${C.goldDim}` }}>
               <div style={{ fontSize: 11, color: C.textDim, marginBottom: 10, lineHeight: 1.6 }}>
-                안건을 선택하면 📝 편집장 에이전트가 자동으로 2,000자 블로그 초안을 작성합니다.<br/>
-                채널별 톤(정치=날카롭게, 라이프=따뜻하게)이 자동 적용됩니다.
+                안건의 팩트를 확인하고 수정하세요. "✅ 안건 확정"을 눌러야 편집장에게 전달됩니다.<br/>
+                팩트가 틀리면 직접 수정하거나, 피드백을 주고 "🔄 재생성"을 누르세요.
               </div>
 
               {runResults.planner.topics.map((t, i) => {
+                const isConfirmed = confirmedTopics[`topic_${i}`];
+
+                return (
+                  <div key={i} style={{ marginBottom: 12, borderRadius: 10, border: `1px solid ${isConfirmed ? `${C.green}66` : C.border}`, overflow: "hidden" }}>
+                    {/* 안건 헤더 */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: isConfirmed ? `${C.green}11` : C.bg }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.gold }}>#{i+1}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, color: C.textDim }}>{t.pipeline || ""}</div>
+                      </div>
+                      {isConfirmed ? (
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <Badge text="확정됨" color={C.green} />
+                          <button onClick={() => setConfirmedTopics(prev => { const n = {...prev}; delete n[`topic_${i}`]; return n; })}
+                            style={{ fontSize: 9, color: C.textDim, background: "transparent", border: "none", cursor: "pointer", textDecoration: "underline" }}>취소</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmedTopics(prev => ({ ...prev, [`topic_${i}`]: true }))}
+                          style={{ padding: "5px 12px", borderRadius: 6, fontSize: 11, fontFamily: "inherit", fontWeight: 700, cursor: "pointer", border: "none", background: C.green, color: "#fff" }}>
+                          ✅ 안건 확정
+                        </button>
+                      )}
+                    </div>
+
+                    {/* 편집 가능한 제목/개요 */}
+                    <div style={{ padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10, color: C.textDim, marginBottom: 4 }}>제목 (직접 수정 가능)</div>
+                      <input type="text" value={t.title || ""} onChange={e => {
+                        const updated = { ...runResults };
+                        updated.planner.topics[i].title = e.target.value;
+                        setRunResults({ ...updated });
+                        setConfirmedTopics(prev => { const n = {...prev}; delete n[`topic_${i}`]; return n; });
+                      }} style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 12, fontWeight: 600, padding: "6px 8px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }} />
+
+                      <div style={{ fontSize: 10, color: C.textDim, marginBottom: 4, marginTop: 8 }}>개요 (직접 수정 가능)</div>
+                      <textarea value={t.outline || ""} onChange={e => {
+                        const updated = { ...runResults };
+                        updated.planner.topics[i].outline = e.target.value;
+                        setRunResults({ ...updated });
+                        setConfirmedTopics(prev => { const n = {...prev}; delete n[`topic_${i}`]; return n; });
+                      }} style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 6, color: C.textMuted, fontSize: 11, padding: "6px 8px", outline: "none", fontFamily: "inherit", resize: "vertical", minHeight: 50, lineHeight: 1.5, boxSizing: "border-box" }} />
+
+                      {t.keywords && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 6 }}>
+                          {t.keywords.map((k, j) => <Badge key={j} text={k} color={C.blue} small />)}
+                        </div>
+                      )}
+
+                      {/* 리서처 팩트노트 표시 */}
+                      {runResults.researcher?.main_pipeline?.fact_notes && i === 0 && (
+                        <div style={{ marginTop: 8, padding: "6px 8px", borderRadius: 6, background: `${C.blue}11`, border: `1px solid ${C.blue}22` }}>
+                          <div style={{ fontSize: 9, color: C.blue, fontWeight: 700, marginBottom: 3 }}>🔍 리서처 팩트체크 노트</div>
+                          {runResults.researcher.main_pipeline.fact_notes.map((n, j) => (
+                            <div key={j} style={{ fontSize: 10, color: C.textMuted }}>{n}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* CEO 피드백 → 기획자 재생성 */}
+              {!regenerating && Object.keys(confirmedTopics).length < runResults.planner.topics.length && (
+                <div style={{ marginTop: 10, padding: 12, borderRadius: 8, background: C.bg, border: `1px solid ${C.border}` }}>
+                  <div style={{ fontSize: 10, color: C.amber, fontWeight: 700, marginBottom: 6 }}>🔄 안건 재생성 (피드백 반영)</div>
+                  <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6 }}>수정 방향을 입력하면 기획자가 피드백을 반영하여 안건을 재생성합니다.</div>
+                  <textarea value={feedbackText} onChange={e => setFeedbackText(e.target.value)} placeholder="예: 지방선거는 D-8이야. 정치 안건은 후보자 공약 비교로 바꿔줘." style={{ width: "100%", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, fontSize: 11, padding: "8px", outline: "none", fontFamily: "inherit", resize: "vertical", minHeight: 40, boxSizing: "border-box" }} />
+                  <button onClick={async () => {
+                    if (!feedbackText.trim()) return;
+                    setRegenerating(true);
+                    addLog(`🔄 CEO 피드백으로 기획자 재생성 요청: "${feedbackText.slice(0,50)}..."`);
+                    try {
+                      const res = await fetch("/api/planner?manual=1", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          research_brief: runResults.researcher,
+                          ceo_feedback: feedbackText,
+                          previous_topics: runResults.planner.topics,
+                        }),
+                      });
+                      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                      const data = await res.json();
+                      setRunResults(prev => ({ ...prev, planner: data }));
+                      setConfirmedTopics({});
+                      setFeedbackText("");
+                      addLog("🔄 기획자 재생성 완료 ✓ — 새 안건을 확인하세요.");
+                    } catch (e) {
+                      addLog(`🔄 재생성 에러: ${e.message}`);
+                    }
+                    setRegenerating(false);
+                  }} disabled={regenerating || !feedbackText.trim()} style={{
+                    marginTop: 6, width: "100%", padding: "8px", borderRadius: 6, fontSize: 11, fontFamily: "inherit", fontWeight: 700,
+                    cursor: feedbackText.trim() && !regenerating ? "pointer" : "not-allowed",
+                    border: "none", background: feedbackText.trim() ? C.amber : C.surface2,
+                    color: feedbackText.trim() ? "#1a1a18" : C.textDim,
+                  }}>
+                    {regenerating ? "⏳ 재생성 중..." : "🔄 피드백 반영하여 재생성"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── PHASE 2: 편집장 초안 작성 (확정된 안건만) ── */}
+        {runResults.planner?.topics && Object.keys(confirmedTopics).length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.green, marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+              <span>📝</span> 편집장 초안 작성 (확정된 안건만)
+            </div>
+
+            <div style={{ background: C.surface, borderRadius: 12, padding: 14, marginBottom: 8, border: `1px solid ${C.green}33` }}>
+              {runResults.planner.topics.map((t, i) => {
+                if (!confirmedTopics[`topic_${i}`]) return null;
                 const draftKey = `draft_${i}`;
                 const draft = runResults[draftKey];
                 const draftStatus = runStatus[draftKey];
 
                 return (
                   <div key={i} style={{ marginBottom: 12, borderRadius: 10, border: `1px solid ${draft ? `${C.green}44` : C.border}`, overflow: "hidden" }}>
-                    {/* 안건 헤더 + 초안 요청 버튼 */}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: draft ? `${C.green}11` : C.bg }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: C.gold }}>#{i+1}</span>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{t.title || `안건 ${i+1}`}</div>
-                        <div style={{ fontSize: 10, color: C.textDim }}>{t.pipeline || ""} · {(t.keywords || []).slice(0,3).join(", ")}</div>
+                        <div style={{ fontSize: 10, color: C.textDim }}>{t.pipeline} · 확정됨 ✅</div>
                       </div>
                       {!draft && draftStatus !== "running" && (
                         <button onClick={async () => {
                           setRunStatus(prev => ({ ...prev, [draftKey]: "running" }));
-                          addLog(`📝 편집장: 안건 #${i+1} "${t.title}" 초안 작성 시작...`);
+                          addLog(`📝 편집장: "${t.title}" 초안 작성 시작...`);
                           try {
                             const revenue = runResults.revenue?.products?.[i] || null;
                             const res = await fetch("/api/editor?manual=1", {
@@ -451,27 +573,21 @@ export default function PlanningDeptTab() {
                             const data = await res.json();
                             setRunResults(prev => ({ ...prev, [draftKey]: data }));
                             setRunStatus(prev => ({ ...prev, [draftKey]: "done" }));
-                            addLog(`📝 편집장: 안건 #${i+1} 초안 완료 ✓ (${data.word_count || "?"}자)`);
+                            addLog(`📝 편집장 완료 ✓ (${data.word_count || "?"}자)`);
                           } catch (e) {
                             setRunStatus(prev => ({ ...prev, [draftKey]: "error" }));
-                            addLog(`📝 편집장: 안건 #${i+1} 에러 — ${e.message}`);
+                            addLog(`📝 편집장 에러: ${e.message}`);
                           }
                         }} disabled={isRunning} style={{
-                          padding: "6px 14px", borderRadius: 8, fontSize: 11, fontFamily: "inherit",
+                          padding: "6px 14px", borderRadius: 8, fontSize: 11, fontFamily: "inherit", fontWeight: 700,
                           cursor: "pointer", border: "none",
-                          background: `linear-gradient(135deg, ${C.bronze}, ${C.gold})`,
-                          color: "#1a1a18", fontWeight: 700,
-                        }}>
-                          📝 초안 작성
-                        </button>
+                          background: `linear-gradient(135deg, ${C.bronze}, ${C.gold})`, color: "#1a1a18",
+                        }}>📝 초안 작성</button>
                       )}
-                      {draftStatus === "running" && (
-                        <span style={{ fontSize: 11, color: C.amber, fontWeight: 600, animation: "pulse 1.5s infinite" }}>⏳ 작성 중...</span>
-                      )}
+                      {draftStatus === "running" && <span style={{ fontSize: 11, color: C.amber, fontWeight: 600, animation: "pulse 1.5s infinite" }}>⏳ 작성 중...</span>}
                       {draft && <Badge text="초안 완료" color={C.green} />}
                     </div>
 
-                    {/* 초안 결과 */}
                     {draft && draft.body && (
                       <div style={{ padding: "12px", borderTop: `1px solid ${C.border}` }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
@@ -479,59 +595,26 @@ export default function PlanningDeptTab() {
                           <Badge text={`${draft.word_count || "?"}자`} color={C.blue} small />
                           <Badge text={draft.channel || t.pipeline} color={C.purple} small />
                         </div>
-
-                        {/* 메타 정보 */}
                         {draft.meta_description && (
-                          <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6, padding: "6px 8px", background: C.bg, borderRadius: 6 }}>
-                            SEO: {draft.meta_description}
-                          </div>
+                          <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6, padding: "6px 8px", background: C.bg, borderRadius: 6 }}>SEO: {draft.meta_description}</div>
                         )}
                         {draft.tags && (
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginBottom: 8 }}>
                             {draft.tags.map((tag, j) => <Badge key={j} text={`#${tag}`} color={C.teal} small />)}
                           </div>
                         )}
-
-                        {/* 본문 미리보기 */}
-                        <div style={{
-                          fontSize: 11, color: C.textMuted, lineHeight: 1.8, whiteSpace: "pre-wrap",
-                          maxHeight: 300, overflowY: "auto",
-                          padding: "10px 12px", background: C.bg, borderRadius: 8,
-                          border: `1px solid ${C.border}`,
-                        }}>
+                        <div style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.8, whiteSpace: "pre-wrap", maxHeight: 300, overflowY: "auto", padding: "10px 12px", background: C.bg, borderRadius: 8, border: `1px solid ${C.border}` }}>
                           {draft.body}
                         </div>
-
-                        {/* 제휴 상품 */}
-                        {draft.affiliate_products && draft.affiliate_products.length > 0 && (
-                          <div style={{ marginTop: 8 }}>
-                            <div style={{ fontSize: 10, color: C.amber, fontWeight: 700, marginBottom: 4 }}>💰 삽입된 제휴 상품</div>
-                            {draft.affiliate_products.map((ap, j) => (
-                              <div key={j} style={{ fontSize: 10, color: C.textDim, padding: "2px 0" }}>
-                                • {ap.product} — {ap.placement}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* 복사 버튼 */}
                         <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                           <button onClick={() => {
-                            const text = `# ${draft.title}\n\n${draft.body}`;
-                            navigator.clipboard?.writeText(text).then(() => alert("초안 전체가 복사되었습니다!"));
-                          }} style={{
-                            flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 11, fontFamily: "inherit",
-                            cursor: "pointer", border: `1px solid ${C.green}`, background: `${C.green}11`, color: C.green, fontWeight: 600,
-                          }}>
+                            navigator.clipboard?.writeText(`# ${draft.title}\n\n${draft.body}`).then(() => alert("초안 복사됨!"));
+                          }} style={{ flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 11, fontFamily: "inherit", cursor: "pointer", border: `1px solid ${C.green}`, background: `${C.green}11`, color: C.green, fontWeight: 600 }}>
                             📋 초안 복사
                           </button>
                           <button onClick={() => {
-                            const text = `제목: ${draft.title}\nSEO: ${draft.meta_description}\n태그: ${(draft.tags||[]).join(", ")}`;
-                            navigator.clipboard?.writeText(text).then(() => alert("메타 정보가 복사되었습니다!"));
-                          }} style={{
-                            flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 11, fontFamily: "inherit",
-                            cursor: "pointer", border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted,
-                          }}>
+                            navigator.clipboard?.writeText(`제목: ${draft.title}\nSEO: ${draft.meta_description}\n태그: ${(draft.tags||[]).join(", ")}`).then(() => alert("메타 복사됨!"));
+                          }} style={{ flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 11, fontFamily: "inherit", cursor: "pointer", border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted }}>
                             🏷️ 메타 복사
                           </button>
                         </div>
@@ -541,42 +624,6 @@ export default function PlanningDeptTab() {
                 );
               })}
             </div>
-
-            {/* 전체 초안 일괄 요청 */}
-            {runResults.planner.topics.length > 1 && !runResults.draft_0 && !runResults.draft_1 && (
-              <button onClick={async () => {
-                for (let i = 0; i < Math.min(runResults.planner.topics.length, 3); i++) {
-                  const t = runResults.planner.topics[i];
-                  const draftKey = `draft_${i}`;
-                  if (runResults[draftKey]) continue;
-                  setRunStatus(prev => ({ ...prev, [draftKey]: "running" }));
-                  addLog(`📝 편집장: 안건 #${i+1} "${t.title}" 초안 작성 시작...`);
-                  try {
-                    const revenue = runResults.revenue?.products?.[i] || null;
-                    const res = await fetch("/api/editor?manual=1", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ topic: t, revenue }),
-                    });
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    const data = await res.json();
-                    setRunResults(prev => ({ ...prev, [draftKey]: data }));
-                    setRunStatus(prev => ({ ...prev, [draftKey]: "done" }));
-                    addLog(`📝 편집장: 안건 #${i+1} 완료 ✓`);
-                  } catch (e) {
-                    setRunStatus(prev => ({ ...prev, [draftKey]: "error" }));
-                    addLog(`📝 편집장: 안건 #${i+1} 에러 — ${e.message}`);
-                  }
-                }
-              }} disabled={isRunning} style={{
-                width: "100%", padding: "12px", borderRadius: 10, fontSize: 12, fontFamily: "inherit",
-                cursor: "pointer", border: "none",
-                background: `linear-gradient(135deg, ${C.bronze}, ${C.gold})`,
-                color: "#1a1a18", fontWeight: 700, marginBottom: 10,
-              }}>
-                📝 전체 안건 일괄 초안 작성
-              </button>
-            )}
           </div>
         )}
 
@@ -588,9 +635,11 @@ export default function PlanningDeptTab() {
                 setRunResults({ researcher: null, planner: null, revenue: null, briefing: null });
                 setRunStatus({ researcher: "idle", planner: "idle", revenue: "idle", briefing: "idle" });
                 setRunLog([]);
+                setConfirmedTopics({});
                 ls.set("planning_results_v1", null);
                 ls.set("planning_status_v1", null);
                 ls.set("planning_log_v1", null);
+                ls.set("planning_confirmed_v1", null);
               }
             }} style={{ padding: "8px 20px", borderRadius: 8, fontSize: 10, fontFamily: "inherit", cursor: "pointer", border: `1px solid ${C.border}`, background: "transparent", color: C.textDim }}>
               🗑️ 기존 결과 삭제
