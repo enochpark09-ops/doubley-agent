@@ -78,7 +78,37 @@ export default async function handler(req, res) {
       researchBrief = JSON.stringify(req.body.research_brief, null, 2);
     }
 
-    const userMessage = `오늘은 ${date} ${weekday}요일입니다.
+    // CEO 피드백이 있으면 재생성 모드
+    let ceoFeedback = "";
+    let previousTopics = "";
+    if (req.method === "POST" && req.body?.ceo_feedback) {
+      ceoFeedback = req.body.ceo_feedback;
+      previousTopics = req.body.previous_topics ? JSON.stringify(req.body.previous_topics, null, 2) : "";
+    }
+
+    let userMessage;
+    if (ceoFeedback) {
+      userMessage = `오늘은 ${date} ${weekday}요일입니다.
+
+오늘의 파이프라인 배치:
+- 메인: ${pipeline.main}
+- 서브: ${pipeline.sub}
+- 웹소설: ${pipeline.novel || "—"}
+${pipeline.music ? "- 🎵 음원 제작일 (곡 기획 포함)" : ""}
+
+=== 이전에 생성한 안건 ===
+${previousTopics}
+
+=== CEO 피드백 ===
+${ceoFeedback}
+
+CEO의 피드백을 반영하여 안건을 재생성해주세요.
+팩트 오류가 지적되었다면 반드시 수정하세요.
+방향 변경이 요청되었다면 새로운 각도로 안건을 작성하세요.
+리서처 브리프도 참고하세요:
+${researchBrief}`;
+    } else {
+      userMessage = `오늘은 ${date} ${weekday}요일입니다.
 
 오늘의 파이프라인 배치:
 - 메인: ${pipeline.main}
@@ -94,6 +124,7 @@ ${researchBrief}
 - 안건 2: 서브 파이프라인 블로그
 - 안건 3: 메인 또는 크로스연계 블로그
 각 안건에 SEO 최적화 제목, 개요, 키워드, 크로스연계 포인트, 수익화 힌트를 포함하세요.`;
+    }
 
     const result = await callClaude(SYSTEM_PROMPT, userMessage, 2500);
 
