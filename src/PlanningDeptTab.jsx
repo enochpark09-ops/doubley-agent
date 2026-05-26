@@ -162,7 +162,7 @@ const Badge = ({ text, color, small }) => (
 );
 
 export default function PlanningDeptTab() {
-  const [view, setView] = useState("overview");
+  const [view, setView] = useState("run");
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [buildState, setBuildState] = useState(() => ls.get("planning_build_v1", {}));
 
@@ -175,12 +175,228 @@ export default function PlanningDeptTab() {
     });
   };
 
+  // ── 실행 상태 ──
+  const [runStatus, setRunStatus] = useState({ researcher: "idle", planner: "idle", revenue: "idle", briefing: "idle" });
+  const [runResults, setRunResults] = useState({ researcher: null, planner: null, revenue: null, briefing: null });
+  const [runLog, setRunLog] = useState([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [lastRun, setLastRun] = useState(() => ls.get("planning_last_run", null));
+
+  const addLog = (msg) => setRunLog(prev => [...prev, { time: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }), msg }]);
+
+  const runAgent = async (name, label, emoji) => {
+    setRunStatus(prev => ({ ...prev, [name]: "running" }));
+    addLog(`${emoji} ${label} 가동 시작...`);
+    try {
+      const res = await fetch(`/api/${name}?manual=1`);
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
+      }
+      const data = await res.json();
+      setRunResults(prev => ({ ...prev, [name]: data }));
+      setRunStatus(prev => ({ ...prev, [name]: "done" }));
+      addLog(`${emoji} ${label} 완료 ✓`);
+      return data;
+    } catch (e) {
+      setRunStatus(prev => ({ ...prev, [name]: "error" }));
+      addLog(`${emoji} ${label} 에러: ${e.message}`);
+      return null;
+    }
+  };
+
+  const runAll = async () => {
+    if (isRunning) return;
+    setIsRunning(true);
+    setRunLog([]);
+    setRunResults({ researcher: null, planner: null, revenue: null, briefing: null });
+    setRunStatus({ researcher: "idle", planner: "idle", revenue: "idle", briefing: "idle" });
+    addLog("🚀 기획·분석부 가동 시작");
+
+    // Step 1: 리서처
+    const rr = await runAgent("researcher", "리서처", "🔍");
+
+    // Step 2: 기획자
+    const pr = await runAgent("planner", "콘텐츠 기획자", "🧠");
+
+    // Step 3: 수익전략가
+    const rv = await runAgent("revenue", "수익 전략가", "💰");
+
+    // Step 4: 브리핑 통합
+    const br = await runAgent("briefing", "모닝브리핑 통합", "📋");
+
+    addLog(br ? "✅ 전체 완료 — 카카오톡 확인하세요!" : "⚠️ 일부 에이전트 실행 실패");
+
+    const now = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+    setLastRun(now);
+    ls.set("planning_last_run", now);
+    setIsRunning(false);
+  };
+
+  const statusIcon = (s) => {
+    if (s === "running") return "⏳";
+    if (s === "done") return "✅";
+    if (s === "error") return "❌";
+    return "⏸️";
+  };
+  const statusColor = (s) => {
+    if (s === "running") return C.amber;
+    if (s === "done") return C.green;
+    if (s === "error") return C.red;
+    return C.textDim;
+  };
+
   const navBtns = [
+    { id: "run", label: "실행", icon: "▶" },
     { id: "overview", label: "총괄", icon: "◈" },
     { id: "timeline", label: "타임라인", icon: "◷" },
     { id: "weekly", label: "주간배치", icon: "▦" },
     { id: "manual", label: "매뉴얼", icon: "📋" },
   ];
+
+  // ── Run Panel ──
+  const renderRun = () => {
+    const agents = [
+      { key: "researcher", emoji: "🔍", name: "리서처", desc: "트렌드·키워드·뉴스 수집", color: C.blue },
+      { key: "planner", emoji: "🧠", name: "콘텐츠 기획자", desc: "안건 3개 생성 + 크로스연계", color: C.pink },
+      { key: "revenue", emoji: "💰", name: "수익 전략가", desc: "상품 매칭 + 제휴링크 전략", color: C.amber },
+      { key: "briefing", emoji: "📋", name: "모닝브리핑", desc: "통합 + 카카오톡 발송", color: C.teal },
+    ];
+
+    return (
+      <>
+        {/* 실행 버튼 */}
+        <button onClick={runAll} disabled={isRunning} style={{
+          width: "100%", padding: "16px", borderRadius: 14, border: "none", cursor: isRunning ? "not-allowed" : "pointer",
+          background: isRunning ? C.surface2 : `linear-gradient(135deg, ${C.bronze}, ${C.gold})`,
+          color: isRunning ? C.textDim : "#1a1a18", fontSize: 16, fontWeight: 800, fontFamily: "inherit",
+          marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+        }}>
+          {isRunning ? (
+            <><span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⏳</span> 기획부 3명 일하는 중...</>
+          ) : (
+            <>▶ 기획·분석부 가동하기</>
+          )}
+        </button>
+
+        {lastRun && !isRunning && (
+          <div style={{ fontSize: 10, color: C.textDim, textAlign: "center", marginBottom: 14 }}>
+            마지막 실행: {lastRun}
+          </div>
+        )}
+
+        {/* 에이전트 상태 카드 */}
+        {agents.map(a => {
+          const status = runStatus[a.key];
+          const result = runResults[a.key];
+          return (
+            <div key={a.key} style={{
+              background: C.surface, borderRadius: 12, padding: 14, marginBottom: 8,
+              border: `1px solid ${status === "running" ? a.color : C.border}`,
+              borderLeft: `4px solid ${statusColor(status)}`,
+              opacity: status === "idle" && isRunning ? 0.5 : 1,
+              transition: "all .3s",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: result ? 10 : 0 }}>
+                <span style={{ fontSize: 24, filter: status === "running" ? "none" : status === "idle" ? "grayscale(0.5)" : "none" }}>{a.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{a.name}</span>
+                    <span style={{ fontSize: 11 }}>{statusIcon(status)}</span>
+                    {status === "running" && (
+                      <span style={{ fontSize: 9, color: a.color, fontWeight: 600, animation: "pulse 1.5s infinite" }}>작업 중...</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 10, color: C.textDim }}>{a.desc}</div>
+                </div>
+                {status === "done" && <Badge text="완료" color={C.green} />}
+                {status === "error" && <Badge text="에러" color={C.red} />}
+              </div>
+
+              {/* 결과 미리보기 */}
+              {result && !result.error && a.key === "researcher" && result.main_pipeline && (
+                <div style={{ background: C.bg, borderRadius: 8, padding: 10, marginTop: 6 }}>
+                  <div style={{ fontSize: 10, color: C.blue, fontWeight: 700, marginBottom: 4 }}>🔍 트렌드 키워드</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {(result.main_pipeline.trends || []).slice(0, 5).map((t, i) => <Badge key={i} text={t} color={C.blue} small />)}
+                  </div>
+                </div>
+              )}
+              {result && !result.error && a.key === "planner" && result.topics && (
+                <div style={{ background: C.bg, borderRadius: 8, padding: 10, marginTop: 6 }}>
+                  <div style={{ fontSize: 10, color: C.pink, fontWeight: 700, marginBottom: 6 }}>🧠 오늘의 안건</div>
+                  {result.topics.slice(0, 3).map((t, i) => (
+                    <div key={i} style={{ fontSize: 11, color: C.text, padding: "4px 0", borderBottom: i < 2 ? `1px solid ${C.border}` : "none" }}>
+                      <span style={{ color: C.gold, fontWeight: 700, marginRight: 6 }}>#{i + 1}</span>
+                      {t.title || t.pipeline || "안건"}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {result && !result.error && a.key === "revenue" && result.products && (
+                <div style={{ background: C.bg, borderRadius: 8, padding: 10, marginTop: 6 }}>
+                  <div style={{ fontSize: 10, color: C.amber, fontWeight: 700, marginBottom: 4 }}>💰 추천 상품</div>
+                  {result.products.slice(0, 2).map((p, i) => (
+                    <div key={i} style={{ fontSize: 11, color: C.textMuted, padding: "2px 0" }}>
+                      {p.topic_title || `안건 ${p.topic_id}`}: {(p.recommended_products || []).slice(0, 2).map(r => r.product).join(", ")}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {result && !result.error && a.key === "briefing" && result.briefing_text && (
+                <div style={{ background: C.bg, borderRadius: 8, padding: 10, marginTop: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <div style={{ fontSize: 10, color: C.teal, fontWeight: 700 }}>📋 모닝브리핑</div>
+                    {result.kakao_sent && <Badge text="카톡 전송 ✓" color={C.green} small />}
+                    {result.kakao_sent === false && <Badge text="카톡 미전송" color={C.red} small />}
+                  </div>
+                  <div style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.7, whiteSpace: "pre-wrap", maxHeight: 200, overflowY: "auto" }}>
+                    {result.briefing_text}
+                  </div>
+                </div>
+              )}
+              {result && result.error && (
+                <div style={{ background: `${C.red}11`, borderRadius: 8, padding: 10, marginTop: 6 }}>
+                  <div style={{ fontSize: 11, color: C.red }}>{result.error}</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* 실행 로그 */}
+        {runLog.length > 0 && (
+          <div style={{ background: C.surface, borderRadius: 12, padding: 14, marginTop: 8, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 10, color: C.gold, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>EXECUTION LOG</div>
+            <div style={{ maxHeight: 200, overflowY: "auto" }}>
+              {runLog.map((log, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, padding: "3px 0", borderBottom: `1px solid ${C.border}22` }}>
+                  <span style={{ fontSize: 9, fontFamily: MONO, color: C.textDim, minWidth: 60 }}>{log.time}</span>
+                  <span style={{ fontSize: 11, color: C.text }}>{log.msg}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 개별 실행 버튼 */}
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 10, color: C.textDim, marginBottom: 8 }}>개별 에이전트 실행</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {agents.slice(0, 3).map(a => (
+              <button key={a.key} onClick={() => runAgent(a.key, a.name, a.emoji)} disabled={isRunning}
+                style={{ flex: 1, padding: "8px 0", borderRadius: 8, fontSize: 10, fontFamily: "inherit", cursor: isRunning ? "not-allowed" : "pointer",
+                  border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted }}>
+                {a.emoji} {a.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>
+      </>
+    );
+  };
 
   // ── Overview ──
   const renderOverview = () => {
@@ -498,6 +714,7 @@ export default function PlanningDeptTab() {
         </div>
       )}
       <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+        {view === "run" && renderRun()}
         {view === "overview" && renderOverview()}
         {view === "detail" && renderDetail()}
         {view === "timeline" && renderTimeline()}
