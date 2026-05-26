@@ -80,11 +80,11 @@ const FIXED_ITEMS = [
   { id:"qt",      emoji:"✝️", label:"QT" },
   { id:"prayer",  emoji:"🙏", label:"기도 30분" },
   { id:"workout", emoji:"🏃", label:"새벽운동" },
-  { id:"stock",   emoji:"📈", label:"주식블로그 3개 작성" },
-  { id:"novel",   emoji:"📖", label:"웹소설" },
-  { id:"music",   emoji:"🎵", label:"음원만들기" },
-  { id:"sports",  emoji:"⚽", label:"스포츠블로그 1개 작성" },
-  { id:"youtube", emoji:"🎬", label:"정치유튜브 1개 제작" },
+  { id:"politics",emoji:"🎙️", label:"정치 BluntEdge 콘텐츠" },
+  { id:"sports",  emoji:"⚽", label:"스포츠 EdgeStats 콘텐츠" },
+  { id:"economy", emoji:"📈", label:"경제 MF 블로그" },
+  { id:"novel",   emoji:"📖", label:"웹소설 집필" },
+  { id:"music",   emoji:"🎵", label:"음원 만들기" },
 ];
 const loadCL = () => {
   const d = todayStr();
@@ -362,20 +362,26 @@ const AssistantTab = ({ todos, setTodos }) => {
 // 에이전트 실행 탭
 // ══════════════════════════════════════════════════════════════
 const AGENTS = [
-  { id:"novel", name:"웹소설 제작", emoji:"📖", color:"#a07acc", status:"planned", url:"", desc:"팔국지 7시즌 웹소설 제작 에이전트", tags:["문피아","카카오페이지","연재"], schedule:"매일 2화 집필", revenue:"플랫폼 유료화" },
-  { id:"politics", name:"정치 유튜브", emoji:"🎙️", color:"#e07070", status:"building", url:"", desc:"AI 보이스오버 기반 정치 논평 채널", tags:["유튜브","정치","AI 보이스"], schedule:"주 3회 업로드", revenue:"유튜브 광고" },
-  { id:"sports", name:"스포츠 분석", emoji:"⚽", color:"#7aabcc", status:"planned", url:"", desc:"AI 기반 스포츠 경기 분석 유튜브", tags:["유튜브","스포츠","데이터분석"], schedule:"경기 후 24시간 이내", revenue:"유튜브 광고" },
-  { id:"coffee", name:"커피 블로그", emoji:"☕", color:C.bronze, status:"building", url:"", desc:"원두·브루잉·카페 리뷰 전문 블로그", tags:["블로그","애드센스","원두"], schedule:"주 3회 포스팅", revenue:"애드센스/제휴" },
-  { id:"interior", name:"인테리어 블로그", emoji:"🏠", color:"#cc9a6d", status:"building", url:"", desc:"DIY 인테리어·리모델링 정보 블로그", tags:["블로그","애드센스","인테리어"], schedule:"주 2회 포스팅", revenue:"애드센스/제휴" },
-  { id:"essay", name:"철학/신앙 에세이", emoji:"✝️", color:C.gold, status:"building", url:"", desc:"기독교 철학·신앙 에세이 블로그", tags:["블로그","에세이","신앙"], schedule:"주 2회 포스팅", revenue:"구독/애드센스" },
-  { id:"suno", name:"수노 작곡가", emoji:"🎵", color:C.blue, status:"active", url:"https://suno-agent.vercel.app", desc:"AI 음악 생성 & 아티스트 에이전트 (Hanokh)", tags:["Suno","DistroKid","K-POP"], schedule:"주 3곡 생성·배급", revenue:"스트리밍 수익" },
-  { id:"mfstock", name:"MF 주식 분석", emoji:"📈", color:"#00d4aa", status:"active", url:"https://mf-stock-agent.vercel.app", desc:"MoveFutures 기반 AI반도체 주식 분석", tags:["주식","MF분석","블로그"], schedule:"매일 아침 분석", revenue:"블로그 광고" },
+  // 사업부 ① 크리에이티브 (6)
+  { id:"politics", name:"정치 BluntEdge", emoji:"🎙️", color:"#e07070", status:"active", url:"https://thebluntedge.com", desc:"AI 기반 정치 시사 평론 (YouTube+X+블로그)", tags:["BluntEdge","YouTube","X"], schedule:"주 3회 업로드", revenue:"유튜브 광고/애드센스" },
+  { id:"sports", name:"스포츠 EdgeStats", emoji:"⚽", color:"#7aabcc", status:"active", url:"https://sports-agent-pwa.vercel.app", desc:"KBO/MLB 파워 랭킹 & 분석 (X+IG+블로그)", tags:["EdgeStats","X","IG","네이버"], schedule:"매일 X, 주3 IG/블로그", revenue:"광고/제휴" },
+  { id:"economy", name:"경제 MF 분석", emoji:"📈", color:"#00d4aa", status:"active", url:"https://mf-stock-agent.vercel.app", desc:"MoveFutures 기반 AI 주식 분석 블로그", tags:["MF분석","블로그"], schedule:"매일 아침 분석", revenue:"블로그 광고" },
+  { id:"life", name:"라이프 onedo4u", emoji:"☕", color:C.bronze, status:"building", url:"https://onedo4u.com", desc:"커피·인테리어·캠핑 라이프스타일 블로그", tags:["onedo4u","블로그","라이프"], schedule:"주 3회 포스팅", revenue:"애드센스/제휴" },
+  { id:"culture", name:"문화예술", emoji:"🎨", color:"#ccaa5a", status:"planned", url:"", desc:"문화예술 비평 및 큐레이션 블로그", tags:["문화예술","블로그"], schedule:"주 2회 포스팅", revenue:"애드센스" },
+  { id:"philosophy", name:"철학 에세이", emoji:"📜", color:"#9a8ec0", status:"planned", url:"", desc:"신앙·철학 에세이 블로그", tags:["철학","에세이","블로그"], schedule:"주 2회 포스팅", revenue:"구독/애드센스" },
+  // 사업부 ② 콘텐츠 (2)
+  { id:"novel", name:"웹소설 (새작품)", emoji:"📖", color:"#a07acc", status:"planned", url:"", desc:"새 작품 기획→조아라/문피아 연재", tags:["조아라","문피아","주5화"], schedule:"주 5화 연재", revenue:"플랫폼 유료화" },
+  { id:"suno", name:"음원 Suno→DistroKid", emoji:"🎵", color:C.blue, status:"active", url:"https://suno-agent.vercel.app", desc:"AI 음악 생성 & 스트리밍 배급 (Hanokh)", tags:["Suno","DistroKid","K-POP"], schedule:"주 3곡 생성·배급", revenue:"스트리밍 수익" },
+  // 사업부 ③ 스토어 (3)
+  { id:"coffee", name:"커피 원두 스토어", emoji:"☕", color:"#6b4226", status:"planned", url:"", desc:"커피 원두 스마트스토어 판매", tags:["스마트스토어","커피"], schedule:"상시", revenue:"판매 수익" },
+  { id:"interior", name:"인테리어 시공", emoji:"🏠", color:"#cc9a6d", status:"planned", url:"", desc:"인테리어 시공 서비스 & 상품", tags:["스마트스토어","인테리어"], schedule:"상시", revenue:"시공/판매 수익" },
+  { id:"ikea", name:"이케아 가구", emoji:"🪑", color:"#0051ba", status:"planned", url:"", desc:"이케아 가구 큐레이션 스토어", tags:["스마트스토어","이케아"], schedule:"상시", revenue:"판매 수익" },
 ];
 
 const SUGGESTED_AGENTS = [
-  { emoji:"👶", name:"육아/교육 블로그", reason:"검색량 높고 애드센스 단가 우수. 아이 성장 기록 + 교육 정보 결합.", revenue:"애드센스/쿠팡파트너스" },
-  { emoji:"🌏", name:"여행 브이로그", reason:"유튜브 알고리즘 친화적. 국내 여행지 + AI 편집으로 제작비 절감.", revenue:"유튜브 광고/제휴" },
-  { emoji:"💼", name:"직장인 재테크 블로그", reason:"재테크 키워드 CPC 높음. MF 주식 경험 연계 가능.", revenue:"애드센스/제휴" },
+  { emoji:"🎨", name:"문화예술 파이프라인 가동", reason:"문화예술 전담 에이전트 배치 완료. 블로그 개설 후 주2회 포스팅으로 시작.", revenue:"애드센스" },
+  { emoji:"📜", name:"철학 에세이 파이프라인 가동", reason:"철학 전담 에이전트 배치 완료. 신앙·철학 에세이로 구독자 확보.", revenue:"구독/애드센스" },
+  { emoji:"🪑", name:"이케아 가구 스토어 개설", reason:"이케아 가구 큐레이션 스마트스토어. 인테리어 블로그와 시너지.", revenue:"판매 수익" },
 ];
 
 const STATUS_CONFIG = {
@@ -514,37 +520,43 @@ const CR_LS_TODOS = "dy_creator_todos";
 const CR_MONO = "'IBM Plex Mono', monospace";
 
 const CR_DEFAULT_ACCOUNTS = [
+  // 크리에이티브 — 정치 BluntEdge
   { id: "bluntedge_yt", brand: "BluntEdge", platform: "YouTube", handle: "@wjdcldbxnqj", url: "https://youtube.com/@wjdcldbxnqj", status: "active", followers: "", memo: "정치 시사 평론, 익명 보이스오버" },
   { id: "bluntedge_x", brand: "BluntEdge", platform: "X", handle: "@blunt_edge_", url: "https://x.com/blunt_edge_", status: "active", followers: "", memo: "3채널 자동화 완성" },
   { id: "bluntedge_blog", brand: "BluntEdge", platform: "WordPress", handle: "thebluntedge.com", url: "https://thebluntedge.com", status: "setup", followers: "", memo: "카페24, Astra 테마, 첫 15포스트 → 애드센스" },
-  { id: "sports_yt", brand: "스포츠 AI", platform: "YouTube", handle: "", url: "", status: "plan", followers: "", memo: "스포츠 분석 쇼츠 (새 계정)" },
-  { id: "sports_x", brand: "스포츠 AI", platform: "X", handle: "", url: "", status: "plan", followers: "", memo: "X 스레드 (새 계정)" },
-  { id: "sports_ig", brand: "스포츠 AI", platform: "Instagram", handle: "", url: "", status: "plan", followers: "", memo: "인스타 카드뉴스 (새 계정)" },
-  { id: "sports_blog", brand: "스포츠 AI", platform: "네이버블로그", handle: "", url: "", status: "plan", followers: "", memo: "네이버 블로그 (새 계정)" },
-  { id: "onedo_blog", brand: "onedo.works", platform: "WordPress", handle: "onedo.works", url: "https://onedo.works", status: "setup", followers: "", memo: "커피·인테리어 라이프스타일 웹진" },
-  { id: "smartstore", brand: "더블와이스페이스", platform: "스마트스토어", handle: "yourspaceyy", url: "https://smartstore.naver.com/yourspaceyy", status: "active", followers: "", memo: "일본 라이프스타일 소품 수입/판매" },
-  { id: "suno_distrokid", brand: "Hanokh", platform: "DistroKid", handle: "Hanokh", url: "", status: "active", followers: "", memo: "기독교 K-POP, 40곡+ 완성" },
+  // 크리에이티브 — 스포츠 EdgeStats
+  { id: "edgestats_x", brand: "EdgeStats", platform: "X", handle: "@sportsedgestats", url: "https://x.com/sportsedgestats", status: "active", followers: "", memo: "X 자동포스팅 라이브" },
+  { id: "edgestats_ig", brand: "EdgeStats", platform: "Instagram", handle: "@edgestats_", url: "", status: "active", followers: "", memo: "Cloudinary+IG Graph API 연동 완료" },
+  { id: "edgestats_blog", brand: "EdgeStats", platform: "네이버블로그", handle: "edgestat", url: "https://blog.naver.com/edgestat", status: "active", followers: "", memo: "수동 복사 붙여넣기" },
+  { id: "edgestats_yt", brand: "EdgeStats", platform: "YouTube", handle: "@EdgeStats", url: "https://youtube.com/@EdgeStats", status: "setup", followers: "", memo: "YouTube Shorts 자동화 다음 단계" },
+  // 크리에이티브 — 경제
+  { id: "mf_blog", brand: "MF분석", platform: "네이버블로그", handle: "", url: "", status: "active", followers: "", memo: "MF Stock Agent 연동" },
+  // 크리에이티브 — 라이프
+  { id: "onedo_blog", brand: "onedo4u", platform: "WordPress", handle: "onedo4u.com", url: "https://onedo4u.com", status: "setup", followers: "", memo: "커피·인테리어·캠핑 라이프스타일 웹진" },
+  // 콘텐츠 — 음원
+  { id: "suno_distrokid", brand: "Hanokh (음원)", platform: "DistroKid", handle: "Hanokh", url: "", status: "active", followers: "", memo: "기독교 K-POP, 40곡+ 완성" },
+  // 스토어
+  { id: "smartstore", brand: "더블와이스페이스", platform: "스마트스토어", handle: "yourspaceyy", url: "https://smartstore.naver.com/yourspaceyy", status: "active", followers: "", memo: "일본 라이프스타일 소품 수입/판매 (SOU SOU, DULTON)" },
 ];
 
 const CR_DEFAULT_TODOS = [
-  { id: 1, brand: "BluntEdge", text: "첫 포스트 15개 작성", done: false },
-  { id: 2, brand: "BluntEdge", text: "애드센스 신청", done: false },
-  { id: 3, brand: "스포츠 AI", text: "YouTube 계정 개설", done: false },
-  { id: 4, brand: "스포츠 AI", text: "X 계정 개설", done: false },
-  { id: 5, brand: "스포츠 AI", text: "Instagram 계정 개설", done: false },
-  { id: 6, brand: "스포츠 AI", text: "네이버 블로그 계정 개설", done: false },
-  { id: 7, brand: "스포츠 AI", text: "Sports AI Agent 배포 (Vercel)", done: false },
-  { id: 8, brand: "onedo.works", text: "프롤로그 포스트 발행", done: false },
-  { id: 9, brand: "onedo.works", text: "SEO 메타데이터 설정", done: false },
-  { id: 10, brand: "더블와이스페이스", text: "상세페이지 리뉴얼", done: false },
+  { id: 1, brand: "BluntEdge", text: "첫 포스트 15개 작성 → 애드센스 신청", done: false },
+  { id: 2, brand: "BluntEdge", text: "X 토큰 만료 문제 해결", done: false },
+  { id: 3, brand: "EdgeStats", text: "YouTube Shorts 자동화 구축", done: false },
+  { id: 4, brand: "EdgeStats", text: "Gemini 카드뉴스 자동화", done: false },
+  { id: 5, brand: "onedo4u", text: "프롤로그 포스트 발행", done: false },
+  { id: 6, brand: "onedo4u", text: "SEO 메타데이터 설정", done: false },
+  { id: 7, brand: "웹소설", text: "새 작품 기획서 작성", done: false },
+  { id: 8, brand: "웹소설", text: "조아라/문피아 계정 개설", done: false },
+  { id: 9, brand: "더블와이스페이스", text: "상세페이지 리뉴얼", done: false },
+  { id: 10, brand: "커피 원두", text: "커피 원두 스토어 기획", done: false },
 ];
 
 const CR_TRACKS = [
-  { id: "productivity", label: "Productivity", title: "자기계발·생산성", icon: "◈", projects: ["더블와이 플래너", "가계부 플래너", "Double Y Agent"] },
-  { id: "finance", label: "Finance", title: "투자·금융", icon: "◆", projects: ["MF Stock Agent"] },
-  { id: "media", label: "Media", title: "미디어·콘텐츠", icon: "◉", projects: ["BluntEdge", "onedo.works", "Sports AI Agent"] },
-  { id: "creative", label: "Creative", title: "크리에이티브", icon: "◎", projects: ["인사팀장", "팔국지", "임꺽정", "계약직 하녀", "Suno AI"] },
-  { id: "commerce", label: "Commerce", title: "커머스·유통", icon: "◐", projects: ["스마트스토어", "AI 커피 앱"] },
+  { id: "creative", label: "Creative", title: "크리에이티브 파이프라인", icon: "📡", projects: ["BluntEdge (정치)", "EdgeStats (스포츠)", "MF분석 (경제)", "onedo4u (라이프)", "문화예술", "철학"] },
+  { id: "content", label: "Content", title: "콘텐츠 파이프라인", icon: "✍️", projects: ["웹소설 (새작품)", "Suno AI (음원)"] },
+  { id: "store", label: "Store", title: "스토어", icon: "🏪", projects: ["커피 원두", "인테리어 시공", "이케아 가구"] },
+  { id: "productivity", label: "Tools", title: "도구/플랫폼", icon: "◈", projects: ["Double Y Agent", "더블와이 플래너", "가계부 플래너"] },
 ];
 
 const CR_STATUS = {

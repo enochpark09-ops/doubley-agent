@@ -17,19 +17,32 @@ const Badge = ({ text, color, small }) => (
   <span style={{ fontSize: small ? 8 : 9, padding: small ? "1px 5px" : "2px 7px", borderRadius: 8, background: `${color}22`, color, border: `1px solid ${color}44`, fontWeight: 600, whiteSpace: "nowrap" }}>{text}</span>
 );
 
-const CHANNELS = [
-  { id: "politics_blog", label: "정치 블로그", emoji: "🎙️", color: C.red },
-  { id: "politics_shorts", label: "정치 쇼츠", emoji: "🎬", color: C.red },
-  { id: "politics_x", label: "정치 X", emoji: "🐦", color: C.red },
-  { id: "sports_blog", label: "스포츠 블로그", emoji: "⚽", color: C.blue },
-  { id: "sports_x", label: "스포츠 X", emoji: "🐦", color: C.blue },
-  { id: "sports_ig", label: "스포츠 IG", emoji: "📸", color: C.blue },
-  { id: "economy_blog", label: "경제 블로그", emoji: "📈", color: C.green },
-  { id: "life_blog", label: "라이프 블로그", emoji: "☕", color: C.bronze },
-  { id: "novel", label: "웹소설 (화)", emoji: "📖", color: C.purple },
-  { id: "music", label: "음원 (곡)", emoji: "🎵", color: C.pink },
-  { id: "shorts", label: "YouTube Shorts", emoji: "🎬", color: C.amber },
+// ── 3사업부 9파이프라인 체제 (HANOK 2026.5.26 확정) ──
+const BIZ_UNITS = [
+  { id: "creative", label: "크리에이티브", emoji: "📡", color: C.gold },
+  { id: "content", label: "콘텐츠", emoji: "✍️", color: C.purple },
+  { id: "store", label: "스토어", emoji: "🏪", color: C.teal },
 ];
+
+const PIPELINES = [
+  // 사업부 ① 크리에이티브 (6)
+  { id: "politics", label: "정치 (BluntEdge)", emoji: "🎙️", color: C.red, unit: "creative", channels: ["블로그","X","YouTube"], metric: "콘텐츠" },
+  { id: "sports", label: "스포츠 (EdgeStats)", emoji: "⚽", color: C.blue, unit: "creative", channels: ["X","IG","블로그","YouTube"], metric: "콘텐츠" },
+  { id: "economy", label: "경제 (MF)", emoji: "📈", color: C.green, unit: "creative", channels: ["블로그"], metric: "포스트" },
+  { id: "life", label: "라이프 (onedo4u)", emoji: "☕", color: C.bronze, unit: "creative", channels: ["블로그"], metric: "포스트" },
+  { id: "culture", label: "문화예술", emoji: "🎨", color: C.amber, unit: "creative", channels: ["블로그"], metric: "포스트" },
+  { id: "philosophy", label: "철학", emoji: "📜", color: "#9a8ec0", unit: "creative", channels: ["블로그"], metric: "에세이" },
+  // 사업부 ② 콘텐츠 (2)
+  { id: "novel", label: "웹소설 (새작품)", emoji: "📖", color: C.purple, unit: "content", channels: ["조아라/문피아"], metric: "화" },
+  { id: "music", label: "음원 (Suno→DistroKid)", emoji: "🎵", color: C.pink, unit: "content", channels: ["DistroKid"], metric: "곡" },
+  // 사업부 ③ 스토어 (3)
+  { id: "coffee", label: "커피 원두", emoji: "☕", color: "#6b4226", unit: "store", channels: ["스마트스토어"], metric: "상품/매출" },
+  { id: "interior", label: "인테리어 시공", emoji: "🏠", color: "#cc9a6d", unit: "store", channels: ["스마트스토어"], metric: "건/매출" },
+  { id: "ikea", label: "이케아 가구", emoji: "🪑", color: "#0051ba", unit: "store", channels: ["스마트스토어"], metric: "상품/매출" },
+];
+
+// 하위 호환: 기존 CHANNELS 참조가 있는 곳용
+const CHANNELS = PIPELINES;
 
 const todayKST = () => {
   const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
@@ -169,29 +182,41 @@ export default function StrategistTab() {
         )}
       </div>
 
-      {/* 오늘 실적 입력 */}
+      {/* 오늘 실적 입력 — 사업부별 그룹핑 */}
       <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 8 }}>📊 오늘 실적 입력</div>
-      <div style={{ fontSize: 10, color: C.textDim, marginBottom: 10 }}>각 채널의 오늘 발행 수를 입력하세요. 자동 저장됩니다.</div>
+      <div style={{ fontSize: 10, color: C.textDim, marginBottom: 10 }}>각 파이프라인의 오늘 발행 수를 입력하세요. 자동 저장됩니다.</div>
 
-      {CHANNELS.map(ch => {
-        const target = getDailyTarget(ch.id);
-        const actual = dailyActual[ch.id] || 0;
-        const pct = target > 0 ? Math.round(actual / target * 100) : 0;
+      {BIZ_UNITS.map(unit => {
+        const pipelines = PIPELINES.filter(p => p.unit === unit.id);
         return (
-          <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 4, borderRadius: 8, background: C.surface, border: `1px solid ${C.border}` }}>
-            <span style={{ fontSize: 16 }}>{ch.emoji}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.text }}>{ch.label}</div>
-              <div style={{ fontSize: 9, color: C.textDim }}>목표: {target}개/일</div>
+          <div key={unit.id} style={{ marginBottom: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, padding: "4px 0" }}>
+              <span style={{ fontSize: 13 }}>{unit.emoji}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: unit.color, letterSpacing: 1, fontFamily: MONO }}>{unit.label.toUpperCase()}</span>
+              <div style={{ flex: 1, height: 1, background: `${unit.color}44` }} />
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <button onClick={() => setDailyActual(prev => ({ ...prev, [ch.id]: Math.max(0, (prev[ch.id]||0) - 1) }))}
-                style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted, fontSize: 14, cursor: "pointer" }}>−</button>
-              <span style={{ fontSize: 16, fontWeight: 700, color: actual >= target && target > 0 ? C.green : C.text, minWidth: 24, textAlign: "center", fontFamily: MONO }}>{actual}</span>
-              <button onClick={() => setDailyActual(prev => ({ ...prev, [ch.id]: (prev[ch.id]||0) + 1 }))}
-                style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted, fontSize: 14, cursor: "pointer" }}>+</button>
-            </div>
-            {target > 0 && <Badge text={`${pct}%`} color={pct >= 100 ? C.green : pct >= 50 ? C.amber : C.red} small />}
+            {pipelines.map(ch => {
+              const target = getDailyTarget(ch.id);
+              const actual = dailyActual[ch.id] || 0;
+              const pct = target > 0 ? Math.round(actual / target * 100) : 0;
+              return (
+                <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 4, borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, borderLeft: `3px solid ${ch.color}` }}>
+                  <span style={{ fontSize: 16 }}>{ch.emoji}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: C.text }}>{ch.label}</div>
+                    <div style={{ fontSize: 9, color: C.textDim }}>목표: {target}{ch.metric}/일</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <button onClick={() => setDailyActual(prev => ({ ...prev, [ch.id]: Math.max(0, (prev[ch.id]||0) - 1) }))}
+                      style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted, fontSize: 14, cursor: "pointer" }}>−</button>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: actual >= target && target > 0 ? C.green : C.text, minWidth: 24, textAlign: "center", fontFamily: MONO }}>{actual}</span>
+                    <button onClick={() => setDailyActual(prev => ({ ...prev, [ch.id]: (prev[ch.id]||0) + 1 }))}
+                      style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted, fontSize: 14, cursor: "pointer" }}>+</button>
+                  </div>
+                  {target > 0 && <Badge text={`${pct}%`} color={pct >= 100 ? C.green : pct >= 50 ? C.amber : C.red} small />}
+                </div>
+              );
+            })}
           </div>
         );
       })}
@@ -218,30 +243,42 @@ export default function StrategistTab() {
       <>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.gold, marginBottom: 8 }}>📈 주간 실적 ({days[0].date} ~ {days[6].date})</div>
 
-        {CHANNELS.map(ch => {
-          const weekTotal = days.reduce((s, d) => s + (d.data[ch.id] || 0), 0);
-          const weekTarget = getDailyTarget(ch.id) * 5; // 영업일 5일
-          const pct = weekTarget > 0 ? Math.round(weekTotal / weekTarget * 100) : 0;
+        {BIZ_UNITS.map(unit => {
+          const pipelines = PIPELINES.filter(p => p.unit === unit.id);
           return (
-            <div key={ch.id} style={{ background: C.surface, borderRadius: 10, padding: 10, marginBottom: 6, border: `1px solid ${C.border}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                <span style={{ fontSize: 14 }}>{ch.emoji}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: C.text, flex: 1 }}>{ch.label}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: pct >= 100 ? C.green : C.text, fontFamily: MONO }}>{weekTotal}</span>
-                <span style={{ fontSize: 10, color: C.textDim }}>/ {weekTarget}</span>
-                <Badge text={`${pct}%`} color={pct >= 100 ? C.green : pct >= 70 ? C.amber : C.red} small />
+            <div key={unit.id} style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, padding: "2px 0" }}>
+                <span style={{ fontSize: 12 }}>{unit.emoji}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: unit.color, letterSpacing: 1, fontFamily: MONO }}>{unit.label.toUpperCase()}</span>
+                <div style={{ flex: 1, height: 1, background: `${unit.color}44` }} />
               </div>
-              <div style={{ display: "flex", gap: 2 }}>
-                {days.map((d, i) => {
-                  const v = d.data[ch.id] || 0;
-                  return (
-                    <div key={i} style={{ flex: 1, textAlign: "center" }}>
-                      <div style={{ fontSize: 8, color: d.isToday ? C.gold : C.textDim }}>{d.label}</div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: v > 0 ? C.green : C.textDim, fontFamily: MONO }}>{v}</div>
+              {pipelines.map(ch => {
+                const weekTotal = days.reduce((s, d) => s + (d.data[ch.id] || 0), 0);
+                const weekTarget = getDailyTarget(ch.id) * 5;
+                const pct = weekTarget > 0 ? Math.round(weekTotal / weekTarget * 100) : 0;
+                return (
+                  <div key={ch.id} style={{ background: C.surface, borderRadius: 10, padding: 10, marginBottom: 6, border: `1px solid ${C.border}`, borderLeft: `3px solid ${ch.color}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                      <span style={{ fontSize: 14 }}>{ch.emoji}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: C.text, flex: 1 }}>{ch.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: pct >= 100 ? C.green : C.text, fontFamily: MONO }}>{weekTotal}</span>
+                      <span style={{ fontSize: 10, color: C.textDim }}>/ {weekTarget}</span>
+                      <Badge text={`${pct}%`} color={pct >= 100 ? C.green : pct >= 70 ? C.amber : C.red} small />
                     </div>
-                  );
-                })}
-              </div>
+                    <div style={{ display: "flex", gap: 2 }}>
+                      {days.map((d, i) => {
+                        const v = d.data[ch.id] || 0;
+                        return (
+                          <div key={i} style={{ flex: 1, textAlign: "center" }}>
+                            <div style={{ fontSize: 8, color: d.isToday ? C.gold : C.textDim }}>{d.label}</div>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: v > 0 ? C.green : C.textDim, fontFamily: MONO }}>{v}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           );
         })}
@@ -261,31 +298,42 @@ export default function StrategistTab() {
           </div>
         )}
 
-        {monthlyGoals && CHANNELS.map(ch => {
-          const goal = monthlyGoals[ch.id] || 0;
-          const actual = getMonthlyActual(ch.id);
-          const pct = goal > 0 ? Math.round(actual / goal * 100) : 0;
-          const gap = goal - actual;
-          const remainDays = new Date(year, month, 0).getDate() - day;
-          const dailyNeeded = remainDays > 0 ? Math.ceil(gap / remainDays) : gap;
-
+        {monthlyGoals && BIZ_UNITS.map(unit => {
+          const pipelines = PIPELINES.filter(p => p.unit === unit.id);
           return (
-            <div key={ch.id} style={{ background: C.surface, borderRadius: 10, padding: 12, marginBottom: 6, border: `1px solid ${C.border}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                <span style={{ fontSize: 14 }}>{ch.emoji}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: C.text, flex: 1 }}>{ch.label}</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: pct >= 100 ? C.green : C.text, fontFamily: MONO }}>{actual}</span>
-                <span style={{ fontSize: 10, color: C.textDim }}>/ {goal}</span>
-                <Badge text={`${pct}%`} color={pct >= 100 ? C.green : pct >= 70 ? C.amber : C.red} />
+            <div key={unit.id} style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, padding: "2px 0" }}>
+                <span style={{ fontSize: 12 }}>{unit.emoji}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: unit.color, letterSpacing: 1, fontFamily: MONO }}>{unit.label.toUpperCase()}</span>
+                <div style={{ flex: 1, height: 1, background: `${unit.color}44` }} />
               </div>
-              <div style={{ height: 6, background: C.border, borderRadius: 3, marginBottom: 4 }}>
-                <div style={{ height: "100%", borderRadius: 3, background: pct >= 100 ? C.green : pct >= 70 ? C.amber : C.red, width: `${Math.min(pct, 100)}%`, transition: "width .5s" }} />
-              </div>
-              {gap > 0 && (
-                <div style={{ fontSize: 9, color: C.textDim }}>
-                  남은 GAP: {gap}개 · 남은 {remainDays}일 · 일 {dailyNeeded}개 필요
-                </div>
-              )}
+              {pipelines.map(ch => {
+                const goal = monthlyGoals[ch.id] || 0;
+                const actual = getMonthlyActual(ch.id);
+                const pct = goal > 0 ? Math.round(actual / goal * 100) : 0;
+                const gap = goal - actual;
+                const remainDays = new Date(year, month, 0).getDate() - day;
+                const dailyNeeded = remainDays > 0 ? Math.ceil(gap / remainDays) : gap;
+                return (
+                  <div key={ch.id} style={{ background: C.surface, borderRadius: 10, padding: 12, marginBottom: 6, border: `1px solid ${C.border}`, borderLeft: `3px solid ${ch.color}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                      <span style={{ fontSize: 14 }}>{ch.emoji}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: C.text, flex: 1 }}>{ch.label}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: pct >= 100 ? C.green : C.text, fontFamily: MONO }}>{actual}</span>
+                      <span style={{ fontSize: 10, color: C.textDim }}>/ {goal}</span>
+                      <Badge text={`${pct}%`} color={pct >= 100 ? C.green : pct >= 70 ? C.amber : C.red} />
+                    </div>
+                    <div style={{ height: 6, background: C.border, borderRadius: 3, marginBottom: 4 }}>
+                      <div style={{ height: "100%", borderRadius: 3, background: pct >= 100 ? C.green : pct >= 70 ? C.amber : C.red, width: `${Math.min(pct, 100)}%`, transition: "width .5s" }} />
+                    </div>
+                    {gap > 0 && (
+                      <div style={{ fontSize: 9, color: C.textDim }}>
+                        남은 GAP: {gap}{ch.metric} · 남은 {remainDays}일 · 일 {dailyNeeded}{ch.metric} 필요
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           );
         })}
@@ -317,14 +365,26 @@ export default function StrategistTab() {
 
         {monthlyGoals && !editingGoals && (
           <>
-            {CHANNELS.map(ch => (
-              <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 4, borderRadius: 8, background: C.surface, border: `1px solid ${C.border}` }}>
-                <span>{ch.emoji}</span>
-                <span style={{ flex: 1, fontSize: 11, color: C.text }}>{ch.label}</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: C.gold, fontFamily: MONO }}>{monthlyGoals[ch.id] || 0}</span>
-                <span style={{ fontSize: 10, color: C.textDim }}>개/월</span>
-              </div>
-            ))}
+            {BIZ_UNITS.map(unit => {
+              const pipelines = PIPELINES.filter(p => p.unit === unit.id);
+              return (
+                <div key={unit.id} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "2px 0" }}>
+                    <span style={{ fontSize: 12 }}>{unit.emoji}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: unit.color, letterSpacing: 1, fontFamily: MONO }}>{unit.label.toUpperCase()}</span>
+                    <div style={{ flex: 1, height: 1, background: `${unit.color}44` }} />
+                  </div>
+                  {pipelines.map(ch => (
+                    <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 4, borderRadius: 8, background: C.surface, border: `1px solid ${C.border}`, borderLeft: `3px solid ${ch.color}` }}>
+                      <span>{ch.emoji}</span>
+                      <span style={{ flex: 1, fontSize: 11, color: C.text }}>{ch.label}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: C.gold, fontFamily: MONO }}>{monthlyGoals[ch.id] || 0}</span>
+                      <span style={{ fontSize: 10, color: C.textDim }}>{ch.metric}/월</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
             <button onClick={() => { setEditingGoals(true); setGoalDraft({ ...monthlyGoals }); }} style={{
               width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, fontSize: 11, fontFamily: "inherit",
               cursor: "pointer", border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted,
@@ -334,17 +394,28 @@ export default function StrategistTab() {
 
         {editingGoals && (
           <div style={{ background: C.surface, borderRadius: 12, padding: 14, border: `1px solid ${C.goldDim}` }}>
-            <div style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>각 채널의 월간 목표 수를 입력하세요.</div>
-            {CHANNELS.map(ch => (
-              <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
-                <span>{ch.emoji}</span>
-                <span style={{ flex: 1, fontSize: 11, color: C.text }}>{ch.label}</span>
-                <input type="number" value={goalDraft[ch.id] || ""} placeholder="0"
-                  onChange={e => setGoalDraft(prev => ({ ...prev, [ch.id]: parseInt(e.target.value) || 0 }))}
-                  style={{ width: 60, padding: "4px 8px", borderRadius: 6, background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, fontFamily: MONO, textAlign: "center" }} />
-                <span style={{ fontSize: 10, color: C.textDim, minWidth: 30 }}>개/월</span>
-              </div>
-            ))}
+            <div style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>각 파이프라인의 월간 목표 수를 입력하세요.</div>
+            {BIZ_UNITS.map(unit => {
+              const pipelines = PIPELINES.filter(p => p.unit === unit.id);
+              return (
+                <div key={unit.id} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "4px 0" }}>
+                    <span style={{ fontSize: 12 }}>{unit.emoji}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: unit.color, letterSpacing: 1 }}>{unit.label}</span>
+                  </div>
+                  {pipelines.map(ch => (
+                    <div key={ch.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
+                      <span>{ch.emoji}</span>
+                      <span style={{ flex: 1, fontSize: 11, color: C.text }}>{ch.label}</span>
+                      <input type="number" value={goalDraft[ch.id] || ""} placeholder="0"
+                        onChange={e => setGoalDraft(prev => ({ ...prev, [ch.id]: parseInt(e.target.value) || 0 }))}
+                        style={{ width: 60, padding: "4px 8px", borderRadius: 6, background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, fontFamily: MONO, textAlign: "center" }} />
+                      <span style={{ fontSize: 10, color: C.textDim, minWidth: 30 }}>{ch.metric}/월</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
               <button onClick={() => { setMonthlyGoals(goalDraft); setEditingGoals(false); }} style={{
                 flex: 1, padding: "10px", borderRadius: 8, fontSize: 12, fontFamily: "inherit", fontWeight: 700,
