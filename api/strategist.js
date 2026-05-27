@@ -45,12 +45,21 @@ export default async function handler(req, res) {
     const body = req.body || {};
     const { date, weekday, month, year, day, dayIndex,
             monthly_goals, monthly_actuals, yesterday_actuals, channels,
+            schedule_progress,
             is_monday, is_month_end, is_month_start } = body;
 
     let specialContext = "";
     if (is_monday) specialContext += "\n오늘은 월요일입니다. 지난주 실적을 종합 리뷰하고 이번주 전략을 제시해주세요.";
     if (is_month_end) specialContext += "\n오늘은 이번달 마지막 날입니다. 월간 최종 실적을 정리하고, 다음달 목표치를 제안해주세요.";
     if (is_month_start) specialContext += "\n오늘은 월초입니다. 전월 최종 목표 대비 달성률과 GAP 원인을 분석해주세요.";
+
+    let scheduleContext = "";
+    if (schedule_progress) {
+      scheduleContext = `\n=== 오늘 스케줄 진행률 ===\n완료: ${schedule_progress.done}/${schedule_progress.total}`;
+      if (schedule_progress.pending && schedule_progress.pending.length > 0) {
+        scheduleContext += `\n미완료 작업:\n${schedule_progress.pending.join("\n")}`;
+      }
+    }
 
     const userMessage = `오늘은 ${date} ${weekday}요일입니다. (${year}년 ${month}월 ${day}일)
 
@@ -65,7 +74,7 @@ ${monthly_actuals ? Object.entries(monthly_actuals).map(([k,v]) => `${k}: ${v}�
 
 === 전일 실적 ===
 ${yesterday_actuals && Object.keys(yesterday_actuals).length > 0 ? Object.entries(yesterday_actuals).map(([k,v]) => `${k}: ${v}개`).join("\n") : "전일 실적 없음"}
-${specialContext}
+${scheduleContext}${specialContext}
 
 위 데이터를 기반으로 CEO용 전략 브리핑을 생성해주세요.
 목표가 설정되지 않은 채널은 제외하고, 설정된 채널만 분석하세요.

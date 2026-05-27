@@ -26,12 +26,12 @@ const BIZ_UNITS = [
 
 const PIPELINES = [
   // 사업부 ① 크리에이티브 (6)
-  { id: "politics", label: "정치 (BluntEdge)", emoji: "🎙️", color: C.red, unit: "creative", channels: ["블로그","X","YouTube"], metric: "콘텐츠" },
-  { id: "sports", label: "스포츠 (EdgeStats)", emoji: "⚽", color: C.blue, unit: "creative", channels: ["X","IG","블로그","YouTube"], metric: "콘텐츠" },
-  { id: "economy", label: "경제 (MF)", emoji: "📈", color: C.green, unit: "creative", channels: ["블로그"], metric: "포스트" },
-  { id: "life", label: "라이프 (onedo4u)", emoji: "☕", color: C.bronze, unit: "creative", channels: ["블로그"], metric: "포스트" },
-  { id: "culture", label: "문화예술", emoji: "🎨", color: C.amber, unit: "creative", channels: ["블로그"], metric: "포스트" },
-  { id: "philosophy", label: "철학", emoji: "📜", color: "#9a8ec0", unit: "creative", channels: ["블로그"], metric: "에세이" },
+  { id: "politics", label: "정치 (BluntEdge)", emoji: "🎙️", color: C.red, unit: "creative", channels: ["YouTube","BluntEdge","X"], metric: "콘텐츠" },
+  { id: "sports", label: "스포츠 (EdgeStats)", emoji: "⚽", color: C.blue, unit: "creative", channels: ["YouTube","X","IG"], metric: "콘텐츠" },
+  { id: "economy", label: "경제 (MF)", emoji: "📈", color: C.green, unit: "creative", channels: ["네이버","X"], metric: "포스트" },
+  { id: "life", label: "라이프 (onedo4u)", emoji: "☕", color: C.bronze, unit: "creative", channels: ["YouTube","onedo4u","X","IG"], metric: "포스트" },
+  { id: "culture", label: "문화예술", emoji: "🎨", color: C.amber, unit: "creative", channels: ["onedo4u","X","IG"], metric: "포스트" },
+  { id: "philosophy", label: "철학", emoji: "📜", color: "#9a8ec0", unit: "creative", channels: ["YouTube","X"], metric: "에세이" },
   // 사업부 ② 콘텐츠 (2)
   { id: "novel", label: "웹소설 (새작품)", emoji: "📖", color: C.purple, unit: "content", channels: ["조아라/문피아"], metric: "화" },
   { id: "music", label: "음원 (Suno→DistroKid)", emoji: "🎵", color: C.pink, unit: "content", channels: ["DistroKid"], metric: "곡" },
@@ -43,6 +43,32 @@ const PIPELINES = [
 
 // 하위 호환: 기존 CHANNELS 참조가 있는 곳용
 const CHANNELS = PIPELINES;
+
+// ── 크리에이티브 파이프라인 일일 스케줄 (CEO 손글씨 기반) ──
+const DEFAULT_SCHEDULE = [
+  // 정치 BluntEdge
+  { id: "pol_1", pipeline: "politics", time: "09:00", task: "사설 3개 핫이슈 도출", round: 1 },
+  { id: "pol_2", pipeline: "politics", time: "12:00", task: "정책분석 글 작성 + 감성 분석", round: 2 },
+  { id: "pol_3", pipeline: "politics", time: "15:00", task: "유튜브 라이브 2개 + 연관 콘텐츠 쓰레드", round: 3 },
+  // 경제 MF
+  { id: "eco_1", pipeline: "economy", time: "09:00", task: "콘텐츠 기사 작성", round: 1 },
+  { id: "eco_2", pipeline: "economy", time: "13:00", task: "MLB 실적 기사", round: 2 },
+  // 스포츠 EdgeStats
+  { id: "spo_1", pipeline: "sports", time: "11:00", task: "리서치 / 기사 작성", round: 1 },
+  { id: "spo_2", pipeline: "sports", time: "13:00", task: "MLB 실적 기사 작성", round: 2 },
+  { id: "spo_3", pipeline: "sports", time: "14:00", task: "KBO 5개 팀 피칭 + 그래프/데이터", round: 3 },
+  // 라이프 onedo4u
+  { id: "lif_1", pipeline: "life", time: "09:00", task: "커피 포스팅 2가지", round: 1 },
+  { id: "lif_2", pipeline: "life", time: "13:00", task: "인테리어 관련 글", round: 2 },
+  // 문화예술
+  { id: "cul_1", pipeline: "culture", time: "11:00", task: "소식 / 레퍼런스 2가지", round: 1 },
+  { id: "cul_2", pipeline: "culture", time: "14:00", task: "영화평 / 에세이 작업", round: 2 },
+  // 철학
+  { id: "phi_1", pipeline: "philosophy", time: "14:00", task: "문화활동 / 에세이", round: 1 },
+  // 자기계발 (cross-pipeline)
+  { id: "self_1", pipeline: "_self", time: "23:00", task: "2가지 아이디어 정리", round: 1 },
+  { id: "self_2", pipeline: "_self", time: "09:00", task: "사업용 이슈 정리", round: 2 },
+];
 
 const todayKST = () => {
   const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
@@ -73,14 +99,22 @@ export default function StrategistTab() {
   const [editingGoals, setEditingGoals] = useState(false);
   const [goalDraft, setGoalDraft] = useState({});
   // 뷰
-  const [view, setView] = useState("daily");
+  const [view, setView] = useState("schedule");
   // 전략기획자 AI 결과
   const [briefing, setBriefing] = useState(() => ls.get(`strat_briefing_${date}`, null));
   const [briefingLoading, setBriefingLoading] = useState(false);
+  // 일일 스케줄 체크
+  const [scheduleChecks, setScheduleChecks] = useState(() => ls.get(`strat_sched_${date}`, {}));
+  // 스케줄 편집
+  const [editingSchedule, setEditingSchedule] = useState(false);
+  const [customSchedule, setCustomSchedule] = useState(() => ls.get("strat_schedule_custom", null));
+  const activeSchedule = customSchedule || DEFAULT_SCHEDULE;
 
   useEffect(() => { ls.set(`strat_daily_${date}`, dailyActual); }, [dailyActual, date]);
   useEffect(() => { if (monthlyGoals) ls.set(`strat_goals_${monthKey}`, monthlyGoals); }, [monthlyGoals, monthKey]);
   useEffect(() => { if (briefing) ls.set(`strat_briefing_${date}`, briefing); }, [briefing, date]);
+  useEffect(() => { ls.set(`strat_sched_${date}`, scheduleChecks); }, [scheduleChecks, date]);
+  useEffect(() => { if (customSchedule) ls.set("strat_schedule_custom", customSchedule); }, [customSchedule]);
 
   // 일일 목표 (월간 목표에서 계산 — 영업일 기준)
   const getDailyTarget = (channelId) => {
@@ -121,6 +155,11 @@ export default function StrategistTab() {
         monthly_actuals: monthlyActuals,
         yesterday_actuals: yesterdayData,
         channels: CHANNELS.map(c => ({ id: c.id, label: c.label })),
+        schedule_progress: {
+          total: activeSchedule.length,
+          done: activeSchedule.filter(s => scheduleChecks[s.id]).length,
+          pending: activeSchedule.filter(s => !scheduleChecks[s.id]).map(s => `${s.time} ${s.task}`),
+        },
         is_monday: dayIndex === 1,
         is_month_end: new Date(year, month, 0).getDate() === day,
         is_month_start: day === 1,
@@ -141,11 +180,153 @@ export default function StrategistTab() {
   };
 
   const navBtns = [
+    { id: "schedule", label: "스케줄", icon: "⏰" },
     { id: "daily", label: "일일", icon: "📊" },
     { id: "weekly", label: "주간", icon: "📈" },
     { id: "monthly", label: "월간", icon: "📅" },
-    { id: "goals", label: "목표설정", icon: "🎯" },
+    { id: "goals", label: "목표", icon: "🎯" },
   ];
+
+  // ── 스케줄 뷰 ──
+  const renderSchedule = () => {
+    const toggleCheck = (id) => setScheduleChecks(prev => ({ ...prev, [id]: !prev[id] }));
+    const checkedCount = activeSchedule.filter(s => scheduleChecks[s.id]).length;
+    const totalCount = activeSchedule.length;
+    const pct = totalCount > 0 ? Math.round(checkedCount / totalCount * 100) : 0;
+
+    // 시간순 정렬
+    const sorted = [...activeSchedule].sort((a, b) => a.time.localeCompare(b.time));
+
+    // 시간대별 그룹핑
+    const timeGroups = {};
+    sorted.forEach(s => {
+      if (!timeGroups[s.time]) timeGroups[s.time] = [];
+      timeGroups[s.time].push(s);
+    });
+    const timeKeys = Object.keys(timeGroups).sort();
+
+    // 현재 시간 판단
+    const now = new Date();
+    const nowH = now.getHours();
+    const nowM = now.getMinutes();
+    const nowStr = `${String(nowH).padStart(2,"0")}:${String(nowM).padStart(2,"0")}`;
+
+    return (
+      <>
+        {/* 진행률 바 */}
+        <div style={{ background: C.surface, borderRadius: 12, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.gold }}>⏰ 오늘 스케줄</div>
+              <div style={{ fontSize: 10, color: C.textDim }}>{date} {weekday}요일</div>
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: pct === 100 ? C.green : C.gold }}>{pct}%</div>
+          </div>
+          <div style={{ height: 8, background: C.border, borderRadius: 4 }}>
+            <div style={{ height: "100%", borderRadius: 4, background: pct === 100 ? `linear-gradient(90deg,${C.green},#4aff7a)` : `linear-gradient(90deg,${C.bronze},${C.gold})`, width: `${pct}%`, transition: "width .5s ease" }} />
+          </div>
+          <div style={{ fontSize: 11, color: C.textDim, marginTop: 6, textAlign: "center" }}>{checkedCount} / {totalCount} 완료 {pct === 100 ? "🎉 오늘 스케줄 완주!" : ""}</div>
+        </div>
+
+        {/* 타임라인 */}
+        {timeKeys.map((time, ti) => {
+          const items = timeGroups[time];
+          const isPast = time < nowStr;
+          const isCurrent = ti < timeKeys.length - 1 ? time <= nowStr && nowStr < timeKeys[ti + 1] : time <= nowStr;
+          return (
+            <div key={time} style={{ marginBottom: 12 }}>
+              {/* 시간 헤더 */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <div style={{
+                  width: 10, height: 10, borderRadius: "50%",
+                  background: isCurrent ? C.gold : isPast ? C.green : C.border,
+                  boxShadow: isCurrent ? `0 0 8px ${C.gold}` : "none",
+                  flexShrink: 0,
+                }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: isCurrent ? C.gold : isPast ? C.textMuted : C.text, fontFamily: MONO }}>{time}</span>
+                <div style={{ flex: 1, height: 1, background: isCurrent ? `${C.gold}44` : `${C.border}` }} />
+              </div>
+              {/* 작업 카드들 */}
+              {items.map(item => {
+                const pipe = PIPELINES.find(p => p.id === item.pipeline);
+                const done = scheduleChecks[item.id];
+                const color = pipe ? pipe.color : C.textMuted;
+                const label = pipe ? pipe.label : "자기계발";
+                const emoji = pipe ? pipe.emoji : "💡";
+                return (
+                  <div key={item.id} onClick={() => toggleCheck(item.id)} style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", marginBottom: 4, marginLeft: 18,
+                    borderRadius: 10, background: C.surface, border: `1px solid ${done ? `${color}55` : C.border}`,
+                    borderLeft: `3px solid ${done ? C.green : color}`, cursor: "pointer", opacity: done ? 0.65 : 1, transition: "all .15s",
+                  }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: 5, border: `2px solid ${done ? C.green : C.border}`,
+                      background: done ? C.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0, color: "#1a1a18", fontSize: 12, fontWeight: 700,
+                    }}>{done ? "✓" : ""}</div>
+                    <span style={{ fontSize: 14 }}>{emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: done ? C.textDim : C.text, textDecoration: done ? "line-through" : "none" }}>{item.task}</div>
+                      <div style={{ fontSize: 9, color: color, fontWeight: 600, marginTop: 2 }}>{label}</div>
+                    </div>
+                    <Badge text={`R${item.round}`} color={color} small />
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+
+        {/* 스케줄 편집 버튼 */}
+        <button onClick={() => setEditingSchedule(!editingSchedule)} style={{
+          width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, fontSize: 11, fontFamily: "inherit",
+          cursor: "pointer", border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted,
+        }}>{editingSchedule ? "✕ 편집 닫기" : "✏️ 스케줄 편집"}</button>
+
+        {editingSchedule && (
+          <div style={{ background: C.surface, borderRadius: 12, padding: 14, marginTop: 10, border: `1px solid ${C.goldDim}` }}>
+            <div style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>시간과 작업 내용을 수정하세요. 저장하면 매일 이 스케줄이 적용됩니다.</div>
+            {activeSchedule.map((item, idx) => {
+              const pipe = PIPELINES.find(p => p.id === item.pipeline);
+              return (
+                <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 0", borderBottom: `1px solid ${C.border}22` }}>
+                  <span style={{ fontSize: 12 }}>{pipe ? pipe.emoji : "💡"}</span>
+                  <input type="time" value={item.time}
+                    onChange={e => {
+                      const updated = [...activeSchedule];
+                      updated[idx] = { ...item, time: e.target.value };
+                      setCustomSchedule(updated);
+                    }}
+                    style={{ width: 70, padding: "3px 6px", borderRadius: 4, background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 11, fontFamily: MONO }} />
+                  <input value={item.task}
+                    onChange={e => {
+                      const updated = [...activeSchedule];
+                      updated[idx] = { ...item, task: e.target.value };
+                      setCustomSchedule(updated);
+                    }}
+                    style={{ flex: 1, padding: "4px 8px", borderRadius: 4, background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 11, fontFamily: "inherit", outline: "none" }} />
+                  <button onClick={() => {
+                    const updated = activeSchedule.filter((_, i) => i !== idx);
+                    setCustomSchedule(updated);
+                  }} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, padding: "0 4px" }}>×</button>
+                </div>
+              );
+            })}
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button onClick={() => setCustomSchedule(null)} style={{
+                flex: 1, padding: "8px", borderRadius: 8, fontSize: 11, fontFamily: "inherit",
+                cursor: "pointer", border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted,
+              }}>🔄 기본값 복원</button>
+              <button onClick={() => setEditingSchedule(false)} style={{
+                flex: 1, padding: "8px", borderRadius: 8, fontSize: 11, fontFamily: "inherit", fontWeight: 700,
+                cursor: "pointer", border: "none", background: `linear-gradient(135deg,${C.bronze},${C.gold})`, color: "#1a1a18",
+              }}>✅ 저장 완료</button>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
 
   // ── 일일 뷰 ──
   const renderDaily = () => (
@@ -446,6 +627,7 @@ export default function StrategistTab() {
         ))}
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+        {view === "schedule" && renderSchedule()}
         {view === "daily" && renderDaily()}
         {view === "weekly" && renderWeekly()}
         {view === "monthly" && renderMonthly()}
