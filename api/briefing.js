@@ -1,9 +1,9 @@
-// api/briefing.js — 📋 모닝브리핑 통합 + 카카오톡 알림
+// api/briefing.js — 📋 모닝브리핑 통합 + 텔레그램 알림
 // Trigger: cron 06:45 KST (21:45 UTC) 또는 수동 호출
 // Input: 리서처 + 기획자 + 수익전략가 결과 통합
-// Output: CEO용 모닝브리핑 + 카카오톡 나에게 보내기
+// Output: CEO용 모닝브리핑 + 텔레그램 알림
 
-import { callClaude, sendKakao, todayKST, PIPELINES } from "./_lib/utils.js";
+import { callClaude, sendTelegram, todayKST, PIPELINES } from "./_lib/utils.js";
 
 const SYSTEM_PROMPT = `당신은 HANOK(하노크) 1인 크리에이터 기업의 "비서실장" AI 에이전트입니다.
 
@@ -82,10 +82,11 @@ ${revenue ? JSON.stringify(revenue, null, 2) : "수익전략가 미실행"}
       parsed = { briefing_text: result.slice(0, 900), parse_error: true };
     }
 
-    // 카카오톡 나에게 보내기
-    let kakaoSent = false;
+    // 텔레그램 알림 발송
+    let telegramSent = false;
     if (parsed.briefing_text) {
-      kakaoSent = await sendKakao(parsed.briefing_text);
+      const tgText = `🏢 <b>HANOK 모닝브리핑</b>\n📅 ${date} ${weekday}요일\n\n${parsed.briefing_text}\n\n🔗 <a href="https://doubley-agent.vercel.app">에이전트 열기</a>`;
+      telegramSent = await sendTelegram(tgText);
     }
 
     const output = {
@@ -93,7 +94,7 @@ ${revenue ? JSON.stringify(revenue, null, 2) : "수익전략가 미실행"}
       timestamp: new Date().toISOString(),
       date,
       weekday,
-      kakao_sent: kakaoSent,
+      telegram_sent: telegramSent,
       research_status: research ? "ok" : "failed",
       planner_status: planner ? "ok" : "failed",
       revenue_status: revenue ? "ok" : "failed",

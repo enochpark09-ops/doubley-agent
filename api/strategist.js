@@ -2,7 +2,7 @@
 // Input: 목표, 실적, 날짜 정보
 // Output: 일일 브리핑 (목표 vs 실적, 전일 리뷰, 주간/월간 분석)
 
-import { callClaude } from "./_lib/utils.js";
+import { callClaude, sendTelegram } from "./_lib/utils.js";
 
 const SYSTEM_PROMPT = `당신은 HANOK(하노크) 1인 크리에이터 기업의 "전략기획자" AI 에이전트입니다.
 
@@ -90,10 +90,18 @@ GAP이 큰 채널은 구체적인 원인과 대안을 제시하세요.`;
       parsed = { briefing_text: result.slice(0, 800), parse_error: true };
     }
 
+    // 텔레그램 알림 (send_telegram=true 파라미터 있을 때만)
+    let telegramSent = false;
+    if (body.send_telegram && parsed.briefing_text) {
+      const tgText = `🧠 <b>전략기획자 브리핑</b>\n📅 ${date} ${weekday}요일\n\n${parsed.briefing_text}\n\n🔗 <a href="https://doubley-agent.vercel.app">에이전트 열기</a>`;
+      telegramSent = await sendTelegram(tgText);
+    }
+
     return res.status(200).json({
       agent: "strategist",
       timestamp: new Date().toISOString(),
       date,
+      telegram_sent: telegramSent,
       ...parsed,
     });
   } catch (error) {
