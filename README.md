@@ -1,4 +1,4 @@
-# Double Y Agent Studio — 배포 가이드
+# Double Y Agent Studio — 배포 가이드 수정
 
 ## 📱 PWA 바탕화면 설치 방법
 
