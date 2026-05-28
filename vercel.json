@@ -12,6 +12,6 @@
     }
   ],
   "crons": [
-    { "path": "/api/briefing", "schedule": "45 21 * * 1-5" }
+    { "path": "/api/schedule-notify", "schedule": "0 * * * *" }
   ]
 }

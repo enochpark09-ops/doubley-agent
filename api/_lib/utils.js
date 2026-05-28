@@ -132,3 +132,34 @@ export const saveResult = async (key, data) => {
   console.log(`[SAVE] ${key}:`, JSON.stringify(data).slice(0, 200));
   return data;
 };
+
+// ── CEO 일일 스케줄 (프론트 StrategistTab과 동기화) ──
+export const DEFAULT_SCHEDULE = [
+  { id: "pol_1", pipeline: "politics", time: "09:00", task: "사설 3개 핫이슈 도출", round: 1 },
+  { id: "pol_2", pipeline: "politics", time: "12:00", task: "정책분석 글 작성 + 감성 분석", round: 2 },
+  { id: "pol_3", pipeline: "politics", time: "15:00", task: "유튜브 라이브 2개 + 연관 콘텐츠 쓰레드", round: 3 },
+  { id: "eco_1", pipeline: "economy", time: "09:00", task: "콘텐츠 기사 작성", round: 1 },
+  { id: "eco_2", pipeline: "economy", time: "13:00", task: "MLB 실적 기사", round: 2 },
+  { id: "spo_1", pipeline: "sports", time: "11:00", task: "리서치 / 기사 작성", round: 1 },
+  { id: "spo_2", pipeline: "sports", time: "13:00", task: "MLB 실적 기사 작성", round: 2 },
+  { id: "spo_3", pipeline: "sports", time: "14:00", task: "KBO 5개 팀 피칭 + 그래프/데이터", round: 3 },
+  { id: "lif_1", pipeline: "life", time: "09:00", task: "커피 포스팅 2가지", round: 1 },
+  { id: "lif_2", pipeline: "life", time: "13:00", task: "인테리어 관련 글", round: 2 },
+  { id: "cul_1", pipeline: "culture", time: "11:00", task: "소식 / 레퍼런스 2가지", round: 1 },
+  { id: "cul_2", pipeline: "culture", time: "14:00", task: "영화평 / 에세이 작업", round: 2 },
+  { id: "phi_1", pipeline: "philosophy", time: "14:00", task: "문화활동 / 에세이", round: 1 },
+  { id: "self_1", pipeline: "_self", time: "23:00", task: "2가지 아이디어 정리", round: 1 },
+  { id: "self_2", pipeline: "_self", time: "09:00", task: "사업용 이슈 정리", round: 2 },
+];
+
+export const PIPELINE_LABELS = {
+  politics: "🎙️ 정치 (BluntEdge)",
+  sports: "⚽ 스포츠 (EdgeStats)",
+  economy: "📈 경제 (MF)",
+  life: "☕ 라이프 (onedo4u)",
+  culture: "🎨 문화예술",
+  philosophy: "📜 철학",
+  novel: "📖 웹소설",
+  music: "🎵 음원",
+  _self: "💡 자기계발",
+};
