@@ -155,7 +155,7 @@ export const DEFAULT_SCHEDULE = [
 export const PIPELINE_LABELS = {
   politics: "🎙️ 정치 (BluntEdge)",
   sports: "⚽ 스포츠 (EdgeStats)",
-  economy: "📈 경제 (MF)",
+  economy: "📈 경제 (MarketEdge)",
   life: "☕ 라이프 (onedo4u)",
   culture: "🎨 문화예술",
   philosophy: "📜 철학",

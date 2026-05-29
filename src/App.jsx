@@ -82,7 +82,7 @@ const FIXED_ITEMS = [
   { id:"workout", emoji:"🏃", label:"새벽운동" },
   { id:"politics",emoji:"🎙️", label:"정치 BluntEdge 콘텐츠" },
   { id:"sports",  emoji:"⚽", label:"스포츠 EdgeStats 콘텐츠" },
-  { id:"economy", emoji:"📈", label:"경제 MF 블로그" },
+  { id:"economy", emoji:"📈", label:"경제 MarketEdge" },
   { id:"novel",   emoji:"📖", label:"웹소설 집필" },
   { id:"music",   emoji:"🎵", label:"음원 만들기" },
 ];
@@ -367,7 +367,7 @@ const AgentTab = () => {
   const agentLinks = [
     { name: "Double Y Agent", emoji: "🏠", url: "https://doubley-agent.vercel.app", status: "active", desc: "통합 에이전트 스튜디오" },
     { name: "EdgeStats PWA", emoji: "⚽", url: "https://sports-agent-pwa.vercel.app", status: "active", desc: "KBO/MLB 파워 랭킹 & 분석" },
-    { name: "MF Stock Agent", emoji: "📈", url: "https://mf-stock-agent.vercel.app", status: "active", desc: "MoveFutures 기반 AI 주식 분석" },
+    { name: "MarketEdge Agent", emoji: "📈", url: "https://mf-stock-agent.vercel.app", status: "active", desc: "AI 경제·주식·선물 분석" },
     { name: "Suno Agent", emoji: "🎵", url: "https://suno-agent.vercel.app", status: "active", desc: "AI 음악 생성 & 배급" },
     { name: "BluntEdge 블로그", emoji: "🎙️", url: "https://thebluntedge.com", status: "active", desc: "정치 시사 평론 블로그" },
     { name: "onedo4u 블로그", emoji: "☕", url: "https://onedo4u.com", status: "setup", desc: "라이프스타일 웹진" },
@@ -417,8 +417,8 @@ const CREATOR_CHANNELS = [
     { platform: "Instagram", handle: "@edgestats_", url: "https://instagram.com/edgestats_", opened: true },
   ]},
   { category: "경제", emoji: "📈", color: "#00d4aa", channels: [
-    { platform: "네이버블로그", handle: "edgestat", url: "https://blog.naver.com/edgestat", opened: true },
-    { platform: "X", handle: "", url: "", opened: false },
+    { platform: "YouTube", handle: "", url: "", opened: false },
+    { platform: "X", handle: "@market_edge_", url: "https://x.com/market_edge_", opened: true },
   ]},
   { category: "라이프", emoji: "☕", color: C.bronze, channels: [
     { platform: "YouTube", handle: "", url: "", opened: false },
