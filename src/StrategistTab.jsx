@@ -47,7 +47,7 @@ const CHANNEL_LINKS = {
   "YouTube_sports": { url: "https://youtube.com/@EdgeStats", opened: true },
   "X_sports": { url: "https://x.com/sportsedgestats", opened: true },
   "IG_sports": { url: "https://instagram.com/edgestats_", opened: true },
-  "YouTube_economy": { url: "", opened: false },
+  "YouTube_economy": { url: "https://youtube.com/@MarketEdgeHanok", opened: true },
   "X_economy": { url: "https://x.com/market_edge_", opened: true },
   "YouTube_life": { url: "", opened: false },
   "onedo4u_life": { url: "https://onedo4u.com", opened: true },

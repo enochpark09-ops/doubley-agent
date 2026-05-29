@@ -417,7 +417,7 @@ const CREATOR_CHANNELS = [
     { platform: "Instagram", handle: "@edgestats_", url: "https://instagram.com/edgestats_", opened: true },
   ]},
   { category: "경제", emoji: "📈", color: "#00d4aa", channels: [
-    { platform: "YouTube", handle: "", url: "", opened: false },
+    { platform: "YouTube", handle: "@MarketEdgeHanok", url: "https://youtube.com/@MarketEdgeHanok", opened: true },
     { platform: "X", handle: "@market_edge_", url: "https://x.com/market_edge_", opened: true },
   ]},
   { category: "라이프", emoji: "☕", color: C.bronze, channels: [
