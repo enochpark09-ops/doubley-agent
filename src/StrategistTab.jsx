@@ -112,12 +112,36 @@ export default function StrategistTab() {
   // 브리핑
   const [briefing, setBriefing] = useState(() => ls.get(`strat_briefing_${date}`, null));
   const [briefingLoading, setBriefingLoading] = useState(false);
+  // 투두리스트
+  const [todos, setTodos] = useState(() => ls.get(`strat_todos_${date}`, []));
+  const [newTodo, setNewTodo] = useState("");
+  const [showTodoInput, setShowTodoInput] = useState(false);
 
   useEffect(() => { ls.set(`strat_daily_${date}`, dailyActual); }, [dailyActual, date]);
   useEffect(() => { if (monthlyGoals) ls.set(`strat_goals_${monthKey}`, monthlyGoals); }, [monthlyGoals, monthKey]);
   useEffect(() => { ls.set(`strat_sched_${date}`, scheduleChecks); }, [scheduleChecks, date]);
   useEffect(() => { if (customSchedule) ls.set("strat_schedule_custom", customSchedule); }, [customSchedule]);
   useEffect(() => { if (briefing) ls.set(`strat_briefing_${date}`, briefing); }, [briefing, date]);
+  useEffect(() => { ls.set(`strat_todos_${date}`, todos); }, [todos, date]);
+
+  // 투두 함수들
+  const addTodo = () => {
+    if (!newTodo.trim()) return;
+    const todo = { id: Date.now(), text: newTodo.trim(), done: false, createdAt: new Date().toISOString() };
+    setTodos(prev => [...prev, todo]);
+    setNewTodo("");
+  };
+  const toggleTodo = (id) => setTodos(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  const deleteTodo = (id) => setTodos(prev => prev.filter(t => t.id !== id));
+  const moveTodoToTomorrow = (id) => {
+    const todo = todos.find(t => t.id === id);
+    if (!todo) return;
+    const tomorrow = new Date(new Date(date).getTime() + 86400000);
+    const tmKey = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,"0")}-${String(tomorrow.getDate()).padStart(2,"0")}`;
+    const tmTodos = ls.get(`strat_todos_${tmKey}`, []);
+    ls.set(`strat_todos_${tmKey}`, [...tmTodos, { ...todo, done: false, id: Date.now() }]);
+    setTodos(prev => prev.filter(t => t.id !== id));
+  };
 
   const getDailyTarget = (chId) => {
     if (!monthlyGoals || !monthlyGoals[chId]) return 0;
@@ -152,6 +176,11 @@ export default function StrategistTab() {
           pending: activeSchedule.filter(s => !scheduleChecks[s.id]).map(s => `${s.time} ${s.task}`),
         },
         send_telegram: sendTelegram,
+        todos: {
+          total: todos.length,
+          done: todos.filter(t => t.done).length,
+          pending: todos.filter(t => !t.done).map(t => t.text),
+        },
         is_monday: dayIndex === 1,
         is_month_end: new Date(year, month, 0).getDate() === day,
         is_month_start: day === 1,
@@ -282,6 +311,52 @@ export default function StrategistTab() {
             </div>
           </div>
         )}
+
+        {/* ── CEO 투두리스트 ── */}
+        <div style={{ marginTop: 18, background: C.surface, borderRadius: 14, padding: 16, border: `1px solid ${C.border}` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#6B1D2A" }}>📝 오늘 할 일</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {todos.length > 0 && (
+                <span style={{ fontSize: 10, color: todos.filter(t=>t.done).length === todos.length && todos.length > 0 ? C.green : C.textDim }}>
+                  {todos.filter(t=>t.done).length}/{todos.length}
+                </span>
+              )}
+              <button onClick={() => setShowTodoInput(!showTodoInput)} style={{ width: 28, height: 28, borderRadius: "50%", border: `1px solid ${C.border}`, background: showTodoInput ? `#6B1D2A22` : "transparent", color: showTodoInput ? "#6B1D2A" : C.textMuted, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+            </div>
+          </div>
+
+          {/* 입력 */}
+          {showTodoInput && (
+            <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+              <input
+                value={newTodo} onChange={e => setNewTodo(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") addTodo(); }}
+                placeholder="할 일을 입력하세요..."
+                style={{ flex: 1, padding: "8px 12px", borderRadius: 8, background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 12, fontFamily: "inherit", outline: "none" }}
+                autoFocus
+              />
+              <button onClick={addTodo} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#6B1D2A", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>추가</button>
+            </div>
+          )}
+
+          {/* 투두 목록 */}
+          {todos.length === 0 && !showTodoInput && (
+            <div style={{ fontSize: 11, color: C.textDim, textAlign: "center", padding: 12 }}>+ 버튼으로 할 일을 추가하세요</div>
+          )}
+          {todos.map(todo => (
+            <div key={todo.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 4, borderRadius: 10, background: todo.done ? `${C.green}08` : C.surface2, border: `1px solid ${todo.done ? `${C.green}33` : C.border}`, opacity: todo.done ? 0.7 : 1 }}>
+              <div onClick={() => toggleTodo(todo.id)} style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${todo.done ? C.green : C.border}`, background: todo.done ? C.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, color: "#1a1a18", fontSize: 12, fontWeight: 700 }}>{todo.done ? "✓" : ""}</div>
+              <span style={{ flex: 1, fontSize: 12, color: todo.done ? C.textDim : C.text, textDecoration: todo.done ? "line-through" : "none" }}>{todo.text}</span>
+              <div style={{ display: "flex", gap: 4 }}>
+                {!todo.done && (
+                  <button onClick={() => moveTodoToTomorrow(todo.id)} title="내일로 이동" style={{ background: "none", border: "none", color: C.textDim, cursor: "pointer", fontSize: 12, padding: "2px 4px" }}>→</button>
+                )}
+                <button onClick={() => deleteTodo(todo.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, padding: "2px 4px" }}>×</button>
+              </div>
+            </div>
+          ))}
+        </div>
       </>
     );
   };

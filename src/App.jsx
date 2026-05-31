@@ -511,9 +511,16 @@ export default function App() {
   return (
     <div style={{ display:"flex",flexDirection:"column",height:"100dvh",background:C.bg,fontFamily:"'Noto Sans KR','Apple SD Gothic Neo',sans-serif",color:C.text,overflow:"hidden" }}>
       <div style={{ background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0,paddingTop:"calc(10px + env(safe-area-inset-top,0px))" }}>
-        <div>
-          <div style={{ fontSize:14,fontWeight:800,color:C.gold,letterSpacing:1.5,lineHeight:1 }}>DOUBLE Y</div>
-          <div style={{ fontSize:8,color:C.textDim,letterSpacing:2 }}>AGENT STUDIO</div>
+        <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+          <svg width="36" height="22" viewBox="0 0 120 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 40 C15 25, 25 25, 35 35 C45 45, 50 45, 55 35 C60 25, 65 25, 75 35 C85 45, 90 45, 95 35 C100 25, 110 25, 115 40" stroke="#6B1D2A" strokeWidth="6" strokeLinecap="round" fill="none"/>
+            <path d="M5 50 C15 35, 30 30, 40 40 C50 50, 55 48, 60 38 C65 28, 70 28, 80 38 C90 48, 95 48, 105 38 C110 30, 115 35, 115 45" stroke="#8B3040" strokeWidth="5" strokeLinecap="round" fill="none" opacity="0.7"/>
+            <path d="M20 45 C30 30, 40 32, 50 42 C55 47, 60 45, 65 38 C70 31, 80 30, 90 40 C95 45, 100 42, 108 35" stroke="#A04050" strokeWidth="4" strokeLinecap="round" fill="none" opacity="0.5"/>
+          </svg>
+          <div>
+            <div style={{ fontSize:14,fontWeight:800,color:"#6B1D2A",letterSpacing:2,lineHeight:1 }}>HANOK</div>
+            <div style={{ fontSize:7,color:C.textDim,letterSpacing:1.5 }}>AGENT STUDIO</div>
+          </div>
         </div>
         <div style={{ fontSize:10,color:C.textDim,textAlign:"right" }}>
           {new Date().toLocaleDateString("ko-KR",{month:"short",day:"numeric",weekday:"short"})}
