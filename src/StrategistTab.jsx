@@ -62,6 +62,31 @@ const CHANNEL_LINKS = {
   "DistroKid_music": { url: "", opened: true },
 };
 
+// ── AI 제안 기본 투두 (파이프라인별) ──
+const DEFAULT_TODOS_BY_PIPELINE = [
+  // 🎙️ BluntEdge (정치)
+  { id: "dt_pol_1", text: "BluntEdge 포스트 작성 (AdSense 15개 채우기)", pipeline: "politics", emoji: "🎙️", color: "#e07070" },
+  { id: "dt_pol_2", text: "BluntEdge YouTube 쇼츠 업로드", pipeline: "politics", emoji: "🎙️", color: "#e07070" },
+  { id: "dt_pol_3", text: "BluntEdge X 쓰레드 포스팅", pipeline: "politics", emoji: "🎙️", color: "#e07070" },
+  // 📈 MarketEdge (경제)
+  { id: "dt_eco_1", text: "MarketEdge 일일 스케줄 cron 설정 확인", pipeline: "economy", emoji: "📈", color: "#6dcc7a" },
+  { id: "dt_eco_2", text: "MarketEdge X 자동포스팅 동작 확인", pipeline: "economy", emoji: "📈", color: "#6dcc7a" },
+  { id: "dt_eco_3", text: "MarketEdge YouTube Shorts 업로드", pipeline: "economy", emoji: "📈", color: "#6dcc7a" },
+  // ⚽ EdgeStats (스포츠)
+  { id: "dt_spo_1", text: "KBO 파워랭킹 주간 업데이트 (월요일)", pipeline: "sports", emoji: "⚽", color: "#7aabcc" },
+  { id: "dt_spo_2", text: "EdgeStats Instagram 카드뉴스 생성", pipeline: "sports", emoji: "⚽", color: "#7aabcc" },
+  { id: "dt_spo_3", text: "EdgeStats YouTube Shorts 업로드", pipeline: "sports", emoji: "⚽", color: "#7aabcc" },
+  // ☕ onedo4u (라이프)
+  { id: "dt_lif_1", text: "onedo4u 블로그 포스트 작성 (커피/인테리어)", pipeline: "life", emoji: "☕", color: "#8B7355" },
+  { id: "dt_lif_2", text: "onedo4u AdSense 재심사 포스트 추가", pipeline: "life", emoji: "☕", color: "#8B7355" },
+  // 📖 웹소설
+  { id: "dt_nov_1", text: "웹소설 새 작품 플롯/기획 작업", pipeline: "novel", emoji: "📖", color: "#a07acc" },
+  { id: "dt_nov_2", text: "조아라/문피아 계정 개설 및 연재 준비", pipeline: "novel", emoji: "📖", color: "#a07acc" },
+  // 🏗️ 앱 개발
+  { id: "dt_dev_1", text: "doubley-agent PWA 업데이트 배포", pipeline: "_dev", emoji: "🛠️", color: "#C4A86C" },
+  { id: "dt_dev_2", text: "Wonduroom 네이버 스마트스토어 상품 등록", pipeline: "_dev", emoji: "🏪", color: "#5ac0a0" },
+];
+
 // ── 일일 스케줄 ──
 const DEFAULT_SCHEDULE = [
   { id: "pol_1", pipeline: "politics", time: "09:00", task: "사설 3개 핫이슈 도출", round: 1 },
@@ -298,7 +323,20 @@ export default function StrategistTab() {
 
     // ── STEP 1: 투두 작성 ──
     if (scheduleStep === "write") {
-      const deadline6am = nowHour >= 6; // 6시 넘었으면 경고
+      const deadline6am = nowHour >= 6;
+      const addedIds = new Set(todos.map(t => t.sourceId).filter(Boolean));
+
+      const addSuggested = (item) => {
+        if (addedIds.has(item.id)) return;
+        setTodos(prev => [...prev, { id: Date.now() + Math.random(), text: item.text, time: "", done: false, sourceId: item.id, createdAt: new Date().toISOString() }]);
+      };
+
+      const addAllSuggested = () => {
+        const toAdd = DEFAULT_TODOS_BY_PIPELINE.filter(i => !addedIds.has(i.id));
+        if (!toAdd.length) return;
+        setTodos(prev => [...prev, ...toAdd.map(i => ({ id: Date.now() + Math.random(), text: i.text, time: "", done: false, sourceId: i.id, createdAt: new Date().toISOString() }))]);
+      };
+
       return (
         <>
           {/* 상태 배너 */}
@@ -309,38 +347,71 @@ export default function StrategistTab() {
             <div style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.6 }}>
               {deadline6am
                 ? "시간 배치를 아직 완료하지 않았어요. 지금 바로 할 일을 입력하고 시간을 배치해주세요."
-                : `새벽 6시 전까지 할 일을 모두 입력하고 시간을 배치하세요. 배치 전까지 매시간 텔레그램 알림이 옵니다.`}
+                : "새벽 6시 전까지 할 일을 선택/입력하고 시간 배치를 완료하세요. 배치 전까지 매시간 텔레그램 알림이 옵니다."}
             </div>
           </div>
 
-          {/* 투두 입력 */}
+          {/* ── AI 추천 할일 목록 ── */}
           <div style={{ background: C.surface, borderRadius: 14, padding: 16, marginBottom: 14, border: `1px solid ${C.border}` }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>오늘 할 일 목록</div>
-              <span style={{ fontSize: 10, color: C.textDim }}>{todos.length}개 입력됨</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>🤖 AI 추천 할일</div>
+                <div style={{ fontSize: 10, color: C.textDim, marginTop: 2 }}>탭하면 오늘 목록에 추가됩니다</div>
+              </div>
+              <button onClick={addAllSuggested} style={{ fontSize: 10, padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.gold}55`, background: `${C.gold}15`, color: C.gold, cursor: "pointer", fontWeight: 700, fontFamily: "inherit" }}>
+                전체 추가 +
+              </button>
             </div>
+            {[
+              { key: "politics", label: "🎙️ BluntEdge", color: C.red },
+              { key: "economy",  label: "📈 MarketEdge", color: C.green },
+              { key: "sports",   label: "⚽ EdgeStats",  color: C.blue },
+              { key: "life",     label: "☕ onedo4u",    color: C.bronze },
+              { key: "novel",    label: "📖 웹소설",      color: C.purple },
+              { key: "_dev",     label: "🛠️ 개발/운영",  color: C.gold },
+            ].map(group => {
+              const items = DEFAULT_TODOS_BY_PIPELINE.filter(i => i.pipeline === group.key);
+              return (
+                <div key={group.key} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: group.color, marginBottom: 5 }}>{group.label}</div>
+                  {items.map(item => {
+                    const added = addedIds.has(item.id);
+                    return (
+                      <div key={item.id} onClick={() => addSuggested(item)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", marginBottom: 3, borderRadius: 8, background: added ? `${group.color}12` : C.surface2, border: `1px solid ${added ? group.color + "44" : C.border}`, cursor: added ? "default" : "pointer", opacity: added ? 0.55 : 1 }}>
+                        <span style={{ fontSize: 13, flexShrink: 0, color: added ? C.green : C.textDim }}>{added ? "✓" : "+"}</span>
+                        <span style={{ flex: 1, fontSize: 11, color: added ? C.textDim : C.text, textDecoration: added ? "line-through" : "none" }}>{item.text}</span>
+                        {added && <span style={{ fontSize: 9, color: group.color, fontWeight: 600 }}>추가됨</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
 
-            {/* 입력창 */}
+          {/* ── 직접 추가 ── */}
+          <div style={{ background: C.surface, borderRadius: 14, padding: 16, marginBottom: 14, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>✏️ 직접 추가</div>
             <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-              <input
-                value={newTodo} onChange={e => setNewTodo(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") addTodo(); }}
-                placeholder="할 일을 입력하고 Enter..."
-                style={{ flex: 1, padding: "9px 12px", borderRadius: 8, background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 12, fontFamily: "inherit", outline: "none" }}
-              />
+              <input value={newTodo} onChange={e => setNewTodo(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTodo(); }}
+                placeholder="직접 할 일 입력 후 Enter..."
+                style={{ flex: 1, padding: "9px 12px", borderRadius: 8, background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 12, fontFamily: "inherit", outline: "none" }} />
               <button onClick={addTodo} style={{ padding: "9px 14px", borderRadius: 8, border: "none", background: "#6B1D2A", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>추가</button>
             </div>
-
-            {/* 투두 목록 */}
-            {todos.length === 0 && (
-              <div style={{ fontSize: 11, color: C.textDim, textAlign: "center", padding: "16px 0" }}>아직 할 일이 없어요. 오늘 해야 할 것들을 입력하세요.</div>
-            )}
-            {todos.map(todo => (
-              <div key={todo.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", marginBottom: 4, borderRadius: 10, background: C.surface2, border: `1px solid ${C.border}` }}>
-                <span style={{ flex: 1, fontSize: 12, color: C.text }}>{todo.text}</span>
-                <button onClick={() => deleteTodo(todo.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, padding: "0 4px", flexShrink: 0 }}>×</button>
-              </div>
-            ))}
+            {todos.length === 0
+              ? <div style={{ fontSize: 11, color: C.textDim, textAlign: "center", padding: "12px 0" }}>위 추천 항목을 선택하거나 직접 입력하세요</div>
+              : (
+                <>
+                  <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6 }}>오늘 할 일 — {todos.length}개 선택됨</div>
+                  {todos.map(todo => (
+                    <div key={todo.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", marginBottom: 3, borderRadius: 8, background: C.surface2, border: `1px solid ${C.border}` }}>
+                      <span style={{ flex: 1, fontSize: 11, color: C.text }}>{todo.text}</span>
+                      <button onClick={() => deleteTodo(todo.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, padding: "0 4px", flexShrink: 0 }}>×</button>
+                    </div>
+                  ))}
+                </>
+              )
+            }
           </div>
 
           {/* 다음 단계 */}
