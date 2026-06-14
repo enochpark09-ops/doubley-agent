@@ -112,10 +112,19 @@ export default function StrategistTab() {
   // 브리핑
   const [briefing, setBriefing] = useState(() => ls.get(`strat_briefing_${date}`, null));
   const [briefingLoading, setBriefingLoading] = useState(false);
-  // 투두리스트
+  // 투두리스트 (새 구조: { id, text, time, done, scheduled } )
   const [todos, setTodos] = useState(() => ls.get(`strat_todos_${date}`, []));
   const [newTodo, setNewTodo] = useState("");
   const [showTodoInput, setShowTodoInput] = useState(false);
+  // 스케줄 단계: "write" (투두 작성) | "assign" (시간 배치)
+  const [scheduleStep, setScheduleStep] = useState(() => {
+    const saved = ls.get(`strat_step_${date}`, "write");
+    return saved;
+  });
+  // 시간배치 완료 여부
+  const isScheduleAssigned = todos.length > 0 && todos.every(t => t.time);
+  // 배치 완료 확정 여부 (CEO가 명시적으로 "배치 완료" 눌렀을 때)
+  const [assignConfirmed, setAssignConfirmed] = useState(() => ls.get(`strat_assign_confirmed_${date}`, false));
 
   useEffect(() => { ls.set(`strat_daily_${date}`, dailyActual); }, [dailyActual, date]);
   useEffect(() => { if (monthlyGoals) ls.set(`strat_goals_${monthKey}`, monthlyGoals); }, [monthlyGoals, monthKey]);
@@ -123,24 +132,42 @@ export default function StrategistTab() {
   useEffect(() => { if (customSchedule) ls.set("strat_schedule_custom", customSchedule); }, [customSchedule]);
   useEffect(() => { if (briefing) ls.set(`strat_briefing_${date}`, briefing); }, [briefing, date]);
   useEffect(() => { ls.set(`strat_todos_${date}`, todos); }, [todos, date]);
+  useEffect(() => { ls.set(`strat_step_${date}`, scheduleStep); }, [scheduleStep, date]);
+  useEffect(() => { ls.set(`strat_assign_confirmed_${date}`, assignConfirmed); }, [assignConfirmed, date]);
+
+  // 배치 완료 확정 시 텔레그램에 상태 동기화 (POST)
+  useEffect(() => {
+    if (!assignConfirmed) return;
+    fetch("/api/schedule-notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ assigned: true, todos }),
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignConfirmed]);
 
   // 투두 함수들
   const addTodo = () => {
     if (!newTodo.trim()) return;
-    const todo = { id: Date.now(), text: newTodo.trim(), done: false, createdAt: new Date().toISOString() };
+    const todo = { id: Date.now(), text: newTodo.trim(), done: false, time: "", createdAt: new Date().toISOString() };
     setTodos(prev => [...prev, todo]);
     setNewTodo("");
   };
   const toggleTodo = (id) => setTodos(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
   const deleteTodo = (id) => setTodos(prev => prev.filter(t => t.id !== id));
+  const setTodoTime = (id, time) => setTodos(prev => prev.map(t => t.id === id ? { ...t, time } : t));
   const moveTodoToTomorrow = (id) => {
     const todo = todos.find(t => t.id === id);
     if (!todo) return;
     const tomorrow = new Date(new Date(date).getTime() + 86400000);
     const tmKey = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,"0")}-${String(tomorrow.getDate()).padStart(2,"0")}`;
     const tmTodos = ls.get(`strat_todos_${tmKey}`, []);
-    ls.set(`strat_todos_${tmKey}`, [...tmTodos, { ...todo, done: false, id: Date.now() }]);
+    ls.set(`strat_todos_${tmKey}`, [...tmTodos, { ...todo, done: false, time: "", id: Date.now() }]);
     setTodos(prev => prev.filter(t => t.id !== id));
+  };
+  const confirmAssign = () => {
+    setAssignConfirmed(true);
+    setScheduleStep("assigned");
   };
 
   const getDailyTarget = (chId) => {
@@ -194,169 +221,180 @@ export default function StrategistTab() {
   };
 
   // ════════════════════════════════════════
-  // 스케줄 뷰
+  // 스케줄 뷰 — 2-Step 플로우
   // ════════════════════════════════════════
   const renderSchedule = () => {
-    const toggleCheck = (id) => setScheduleChecks(prev => ({ ...prev, [id]: !prev[id] }));
-    const checkedCount = activeSchedule.filter(s => scheduleChecks[s.id]).length;
-    const totalCount = activeSchedule.length;
-    const pct = totalCount > 0 ? Math.round(checkedCount / totalCount * 100) : 0;
-    const sorted = [...activeSchedule].sort((a, b) => a.time.localeCompare(b.time));
-    const timeGroups = {};
-    sorted.forEach(s => { if (!timeGroups[s.time]) timeGroups[s.time] = []; timeGroups[s.time].push(s); });
-    const timeKeys = Object.keys(timeGroups).sort();
-    const now = new Date();
+    const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
     const nowStr = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+    const nowHour = now.getHours();
 
-    return (
-      <>
-        {/* 진행률 바 */}
-        <div style={{ background: C.surface, borderRadius: 12, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: C.gold }}>⏰ 오늘 스케줄</div>
-              <div style={{ fontSize: 10, color: C.textDim }}>{date} {weekday}요일</div>
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: pct === 100 ? C.green : C.gold }}>{pct}%</div>
-          </div>
-          <div style={{ height: 8, background: C.border, borderRadius: 4 }}>
-            <div style={{ height: "100%", borderRadius: 4, background: pct === 100 ? `linear-gradient(90deg,${C.green},#4aff7a)` : `linear-gradient(90deg,${C.bronze},${C.gold})`, width: `${pct}%`, transition: "width .5s ease" }} />
-          </div>
-          <div style={{ fontSize: 11, color: C.textDim, marginTop: 6, textAlign: "center" }}>{checkedCount} / {totalCount} 완료 {pct === 100 ? "🎉" : ""}</div>
-        </div>
+    // 배치 완료 후: 타임라인 실행 뷰
+    if (assignConfirmed) {
+      const sorted = [...todos].filter(t => t.time).sort((a, b) => a.time.localeCompare(b.time));
+      const timeGroups = {};
+      sorted.forEach(t => { if (!timeGroups[t.time]) timeGroups[t.time] = []; timeGroups[t.time].push(t); });
+      const timeKeys = Object.keys(timeGroups).sort();
+      const doneCount = todos.filter(t => t.done).length;
+      const pct = todos.length > 0 ? Math.round(doneCount / todos.length * 100) : 0;
 
-        {/* 타임라인 */}
-        {timeKeys.map((time, ti) => {
-          const items = timeGroups[time];
-          const isPast = time < nowStr;
-          const isCurrent = ti < timeKeys.length - 1 ? time <= nowStr && nowStr < timeKeys[ti + 1] : time <= nowStr;
-          return (
-            <div key={time} style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <div style={{ width: 10, height: 10, borderRadius: "50%", background: isCurrent ? C.gold : isPast ? C.green : C.border, boxShadow: isCurrent ? `0 0 8px ${C.gold}` : "none", flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: isCurrent ? C.gold : isPast ? C.textMuted : C.text, fontFamily: MONO }}>{time}</span>
-                <div style={{ flex: 1, height: 1, background: isCurrent ? `${C.gold}44` : C.border }} />
+      return (
+        <>
+          {/* 헤더 + 진행률 */}
+          <div style={{ background: C.surface, borderRadius: 12, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: C.gold }}>⏰ 오늘 스케줄</div>
+                <div style={{ fontSize: 10, color: C.textDim }}>{date} {weekday}요일 · 배치 완료 ✅</div>
               </div>
-              {items.map(item => {
-                const pipe = PIPELINES.find(p => p.id === item.pipeline);
-                const done = scheduleChecks[item.id];
-                const color = pipe ? pipe.color : C.textMuted;
-                const label = pipe ? pipe.label : "자기계발";
-                const emoji = pipe ? pipe.emoji : "💡";
-
-                // 채널 링크들
-                const channelLinks = pipe ? pipe.channels.map(ch => {
-                  const key = `${ch}_${pipe.id}`;
-                  const link = CHANNEL_LINKS[key];
-                  return { name: ch, url: link?.url || "", opened: link?.opened || false };
-                }) : [];
-
-                return (
-                  <div key={item.id} style={{ marginBottom: 4, marginLeft: 18 }}>
-                    <div onClick={() => toggleCheck(item.id)} style={{
-                      display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-                      borderRadius: 10, background: C.surface, border: `1px solid ${done ? `${color}55` : C.border}`,
-                      borderLeft: `3px solid ${done ? C.green : color}`, cursor: "pointer", opacity: done ? 0.65 : 1, transition: "all .15s",
-                    }}>
-                      <div style={{ width: 22, height: 22, borderRadius: 5, border: `2px solid ${done ? C.green : C.border}`, background: done ? C.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#1a1a18", fontSize: 12, fontWeight: 700 }}>{done ? "✓" : ""}</div>
-                      <span style={{ fontSize: 14 }}>{emoji}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: done ? C.textDim : C.text, textDecoration: done ? "line-through" : "none" }}>{item.task}</div>
-                        <div style={{ fontSize: 9, color, fontWeight: 600, marginTop: 2 }}>{label}</div>
-                      </div>
-                      <Badge text={`R${item.round}`} color={color} small />
-                    </div>
-                    {/* 채널 링크 */}
-                    {channelLinks.length > 0 && (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4, marginLeft: 34 }}>
-                        {channelLinks.map((cl, ci) => (
-                          cl.opened && cl.url ? (
-                            <a key={ci} href={cl.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 9, padding: "2px 8px", borderRadius: 6, background: `${color}15`, border: `1px solid ${color}33`, color, textDecoration: "none", fontWeight: 600 }}>{cl.name} →</a>
-                          ) : (
-                            <span key={ci} style={{ fontSize: 9, padding: "2px 8px", borderRadius: 6, background: `${C.border}44`, border: `1px solid ${C.border}`, color: C.textDim, fontWeight: 600 }}>{cl.name} {cl.opened ? "" : "⚠️ 미개설"}</span>
-                          )
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: pct === 100 ? C.green : C.gold }}>{pct}%</div>
+                <button onClick={() => { setAssignConfirmed(false); setScheduleStep("assign"); }}
+                  style={{ fontSize: 10, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textDim, cursor: "pointer", fontFamily: "inherit" }}>✏️ 재편집</button>
+              </div>
             </div>
-          );
-        })}
+            <div style={{ height: 8, background: C.border, borderRadius: 4 }}>
+              <div style={{ height: "100%", borderRadius: 4, background: pct === 100 ? `linear-gradient(90deg,${C.green},#4aff7a)` : `linear-gradient(90deg,${C.bronze},${C.gold})`, width: `${pct}%`, transition: "width .5s ease" }} />
+            </div>
+            <div style={{ fontSize: 11, color: C.textDim, marginTop: 6, textAlign: "center" }}>{doneCount} / {todos.length} 완료 {pct === 100 ? "🎉" : ""}</div>
+          </div>
 
-        {/* 편집 버튼 */}
-        <button onClick={() => setEditingSchedule(!editingSchedule)} style={{ width: "100%", marginTop: 10, padding: "10px", borderRadius: 8, fontSize: 11, fontFamily: "inherit", cursor: "pointer", border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted }}>
-          {editingSchedule ? "✕ 편집 닫기" : "✏️ 스케줄 편집"}
-        </button>
-        {editingSchedule && (
-          <div style={{ background: C.surface, borderRadius: 12, padding: 14, marginTop: 10, border: `1px solid ${C.goldDim}` }}>
-            <div style={{ fontSize: 11, color: C.textDim, marginBottom: 10 }}>시간과 작업 내용을 수정하세요.</div>
-            {activeSchedule.map((item, idx) => {
-              const pipe = PIPELINES.find(p => p.id === item.pipeline);
-              return (
-                <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 0", borderBottom: `1px solid ${C.border}22` }}>
-                  <span style={{ fontSize: 12 }}>{pipe ? pipe.emoji : "💡"}</span>
-                  <input type="time" value={item.time} onChange={e => { const u = [...activeSchedule]; u[idx] = { ...item, time: e.target.value }; setCustomSchedule(u); }}
-                    style={{ width: 70, padding: "3px 6px", borderRadius: 4, background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 11, fontFamily: MONO }} />
-                  <input value={item.task} onChange={e => { const u = [...activeSchedule]; u[idx] = { ...item, task: e.target.value }; setCustomSchedule(u); }}
-                    style={{ flex: 1, padding: "4px 8px", borderRadius: 4, background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 11, fontFamily: "inherit", outline: "none" }} />
-                  <button onClick={() => setCustomSchedule(activeSchedule.filter((_, i) => i !== idx))} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, padding: "0 4px" }}>×</button>
+          {/* 타임라인 */}
+          {timeKeys.map((time, ti) => {
+            const items = timeGroups[time];
+            const isPast = time < nowStr;
+            const isCurrent = ti < timeKeys.length - 1 ? time <= nowStr && nowStr < timeKeys[ti + 1] : time <= nowStr;
+            return (
+              <div key={time} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: isCurrent ? C.gold : isPast ? C.green : C.border, boxShadow: isCurrent ? `0 0 8px ${C.gold}` : "none", flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: isCurrent ? C.gold : isPast ? C.textMuted : C.text, fontFamily: MONO }}>{time}</span>
+                  <div style={{ flex: 1, height: 1, background: isCurrent ? `${C.gold}44` : C.border }} />
                 </div>
-              );
-            })}
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-              <button onClick={() => setCustomSchedule(null)} style={{ flex: 1, padding: "8px", borderRadius: 8, fontSize: 11, fontFamily: "inherit", cursor: "pointer", border: `1px solid ${C.border}`, background: "transparent", color: C.textMuted }}>🔄 기본값 복원</button>
-              <button onClick={() => setEditingSchedule(false)} style={{ flex: 1, padding: "8px", borderRadius: 8, fontSize: 11, fontFamily: "inherit", fontWeight: 700, cursor: "pointer", border: "none", background: `linear-gradient(135deg,${C.bronze},${C.gold})`, color: "#1a1a18" }}>✅ 저장</button>
+                {items.map(todo => (
+                  <div key={todo.id} onClick={() => toggleTodo(todo.id)} style={{ marginLeft: 18, marginBottom: 4, display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10, background: C.surface, border: `1px solid ${todo.done ? `${C.green}55` : C.border}`, borderLeft: `3px solid ${todo.done ? C.green : C.gold}`, cursor: "pointer", opacity: todo.done ? 0.6 : 1 }}>
+                    <div style={{ width: 22, height: 22, borderRadius: 5, border: `2px solid ${todo.done ? C.green : C.border}`, background: todo.done ? C.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#1a1a18", fontSize: 12, fontWeight: 700 }}>{todo.done ? "✓" : ""}</div>
+                    <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: todo.done ? C.textDim : C.text, textDecoration: todo.done ? "line-through" : "none" }}>{todo.text}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+
+          {/* 시간 미배치 항목 */}
+          {todos.filter(t => !t.time).length > 0 && (
+            <div style={{ marginTop: 8, padding: 12, background: C.surface, borderRadius: 10, border: `1px dashed ${C.border}` }}>
+              <div style={{ fontSize: 10, color: C.textDim, marginBottom: 6 }}>⚠️ 시간 미배치</div>
+              {todos.filter(t => !t.time).map(todo => (
+                <div key={todo.id} onClick={() => toggleTodo(todo.id)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", marginBottom: 3, borderRadius: 8, background: C.surface2, cursor: "pointer", opacity: todo.done ? 0.6 : 1 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${todo.done ? C.green : C.border}`, background: todo.done ? C.green : "transparent", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#1a1a18", fontWeight: 700 }}>{todo.done ? "✓" : ""}</div>
+                  <span style={{ fontSize: 11, color: todo.done ? C.textDim : C.text, textDecoration: todo.done ? "line-through" : "none" }}>{todo.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      );
+    }
+
+    // ── STEP 1: 투두 작성 ──
+    if (scheduleStep === "write") {
+      const deadline6am = nowHour >= 6; // 6시 넘었으면 경고
+      return (
+        <>
+          {/* 상태 배너 */}
+          <div style={{ background: deadline6am ? `${C.red}18` : `${C.gold}15`, borderRadius: 12, padding: 14, marginBottom: 14, border: `1px solid ${deadline6am ? C.red : C.gold}44` }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: deadline6am ? C.red : C.gold, marginBottom: 4 }}>
+              {deadline6am ? "⚠️ 새벽 6시가 지났습니다!" : "📝 STEP 1 — 오늘 할 일 작성"}
+            </div>
+            <div style={{ fontSize: 11, color: C.textMuted, lineHeight: 1.6 }}>
+              {deadline6am
+                ? "시간 배치를 아직 완료하지 않았어요. 지금 바로 할 일을 입력하고 시간을 배치해주세요."
+                : `새벽 6시 전까지 할 일을 모두 입력하고 시간을 배치하세요. 배치 전까지 매시간 텔레그램 알림이 옵니다.`}
             </div>
           </div>
-        )}
 
-        {/* ── CEO 투두리스트 ── */}
-        <div style={{ marginTop: 18, background: C.surface, borderRadius: 14, padding: 16, border: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#6B1D2A" }}>📝 오늘 할 일</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {todos.length > 0 && (
-                <span style={{ fontSize: 10, color: todos.filter(t=>t.done).length === todos.length && todos.length > 0 ? C.green : C.textDim }}>
-                  {todos.filter(t=>t.done).length}/{todos.length}
-                </span>
-              )}
-              <button onClick={() => setShowTodoInput(!showTodoInput)} style={{ width: 28, height: 28, borderRadius: "50%", border: `1px solid ${C.border}`, background: showTodoInput ? `#6B1D2A22` : "transparent", color: showTodoInput ? "#6B1D2A" : C.textMuted, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+          {/* 투두 입력 */}
+          <div style={{ background: C.surface, borderRadius: 14, padding: 16, marginBottom: 14, border: `1px solid ${C.border}` }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>오늘 할 일 목록</div>
+              <span style={{ fontSize: 10, color: C.textDim }}>{todos.length}개 입력됨</span>
             </div>
-          </div>
 
-          {/* 입력 */}
-          {showTodoInput && (
-            <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            {/* 입력창 */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
               <input
                 value={newTodo} onChange={e => setNewTodo(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") addTodo(); }}
-                placeholder="할 일을 입력하세요..."
-                style={{ flex: 1, padding: "8px 12px", borderRadius: 8, background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 12, fontFamily: "inherit", outline: "none" }}
-                autoFocus
+                placeholder="할 일을 입력하고 Enter..."
+                style={{ flex: 1, padding: "9px 12px", borderRadius: 8, background: C.bg, border: `1px solid ${C.border}`, color: C.text, fontSize: 12, fontFamily: "inherit", outline: "none" }}
               />
-              <button onClick={addTodo} style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#6B1D2A", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>추가</button>
+              <button onClick={addTodo} style={{ padding: "9px 14px", borderRadius: 8, border: "none", background: "#6B1D2A", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>추가</button>
             </div>
-          )}
 
-          {/* 투두 목록 */}
-          {todos.length === 0 && !showTodoInput && (
-            <div style={{ fontSize: 11, color: C.textDim, textAlign: "center", padding: 12 }}>+ 버튼으로 할 일을 추가하세요</div>
-          )}
-          {todos.map(todo => (
-            <div key={todo.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", marginBottom: 4, borderRadius: 10, background: todo.done ? `${C.green}08` : C.surface2, border: `1px solid ${todo.done ? `${C.green}33` : C.border}`, opacity: todo.done ? 0.7 : 1 }}>
-              <div onClick={() => toggleTodo(todo.id)} style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${todo.done ? C.green : C.border}`, background: todo.done ? C.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, color: "#1a1a18", fontSize: 12, fontWeight: 700 }}>{todo.done ? "✓" : ""}</div>
-              <span style={{ flex: 1, fontSize: 12, color: todo.done ? C.textDim : C.text, textDecoration: todo.done ? "line-through" : "none" }}>{todo.text}</span>
-              <div style={{ display: "flex", gap: 4 }}>
-                {!todo.done && (
-                  <button onClick={() => moveTodoToTomorrow(todo.id)} title="내일로 이동" style={{ background: "none", border: "none", color: C.textDim, cursor: "pointer", fontSize: 12, padding: "2px 4px" }}>→</button>
-                )}
-                <button onClick={() => deleteTodo(todo.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, padding: "2px 4px" }}>×</button>
+            {/* 투두 목록 */}
+            {todos.length === 0 && (
+              <div style={{ fontSize: 11, color: C.textDim, textAlign: "center", padding: "16px 0" }}>아직 할 일이 없어요. 오늘 해야 할 것들을 입력하세요.</div>
+            )}
+            {todos.map(todo => (
+              <div key={todo.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", marginBottom: 4, borderRadius: 10, background: C.surface2, border: `1px solid ${C.border}` }}>
+                <span style={{ flex: 1, fontSize: 12, color: C.text }}>{todo.text}</span>
+                <button onClick={() => deleteTodo(todo.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, padding: "0 4px", flexShrink: 0 }}>×</button>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* 다음 단계 */}
+          {todos.length > 0 && (
+            <button onClick={() => setScheduleStep("assign")} style={{ width: "100%", padding: "13px", borderRadius: 10, border: "none", background: `linear-gradient(135deg,${C.bronze},${C.gold})`, color: "#1a1a18", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+              ➡️ STEP 2: 시간 배치하기 ({todos.length}개)
+            </button>
+          )}
+        </>
+      );
+    }
+
+    // ── STEP 2: 시간 배치 ──
+    const unassigned = todos.filter(t => !t.time).length;
+    return (
+      <>
+        {/* 헤더 */}
+        <div style={{ background: C.surface, borderRadius: 12, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: C.gold }}>🕐 STEP 2 — 시간 배치</div>
+            <button onClick={() => setScheduleStep("write")} style={{ fontSize: 10, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "transparent", color: C.textDim, cursor: "pointer", fontFamily: "inherit" }}>← 목록으로</button>
+          </div>
+          <div style={{ fontSize: 11, color: C.textMuted }}>
+            각 할 일에 시간을 배치하세요. 배치 완료 후 텔레그램 알림이 해당 시간에 옵니다.
+          </div>
+          {unassigned > 0 && (
+            <div style={{ marginTop: 8, fontSize: 11, color: C.amber, fontWeight: 600 }}>⏳ {unassigned}개 미배치</div>
+          )}
         </div>
+
+        {/* 시간 배치 목록 */}
+        {todos.map(todo => (
+          <div key={todo.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", marginBottom: 6, borderRadius: 10, background: C.surface, border: `1px solid ${todo.time ? `${C.gold}44` : C.border}`, borderLeft: `3px solid ${todo.time ? C.gold : C.border}` }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{todo.text}</div>
+              {todo.time && <div style={{ fontSize: 10, color: C.gold, marginTop: 2, fontFamily: MONO }}>{todo.time}</div>}
+            </div>
+            <input
+              type="time"
+              value={todo.time || ""}
+              onChange={e => setTodoTime(todo.id, e.target.value)}
+              style={{ width: 80, padding: "5px 8px", borderRadius: 6, background: C.bg, border: `1px solid ${todo.time ? C.gold : C.border}`, color: todo.time ? C.gold : C.textMuted, fontSize: 12, fontFamily: MONO, cursor: "pointer" }}
+            />
+            <button onClick={() => deleteTodo(todo.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, padding: "0 4px", flexShrink: 0 }}>×</button>
+          </div>
+        ))}
+
+        {/* 배치 완료 버튼 */}
+        <button
+          onClick={confirmAssign}
+          disabled={unassigned > 0}
+          style={{ width: "100%", marginTop: 10, padding: "13px", borderRadius: 10, border: "none", background: unassigned > 0 ? C.surface2 : `linear-gradient(135deg,${C.bronze},${C.gold})`, color: unassigned > 0 ? C.textDim : "#1a1a18", fontSize: 13, fontWeight: 800, cursor: unassigned > 0 ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+          {unassigned > 0 ? `⏳ ${unassigned}개 시간을 배치해야 완료됩니다` : "✅ 배치 완료 — 스케줄 시작!"}
+        </button>
       </>
     );
   };
