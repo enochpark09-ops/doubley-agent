@@ -1,13 +1,15 @@
-// api/schedule-notify.js — ⏰ 스케줄 기반 텔레그램 알림
-// Vercel Cron: 매시간 정각 호출
-// 05:00 KST → 일간 브리핑 자동 생성 + 전송
-// 그 외 시간 → 해당 시간의 스케줄 항목을 텔레그램 알림
-// 수동: /api/schedule-notify?manual=1 또는 ?test=1 (테스트 메시지)
-//       /api/schedule-notify?hour=9 (특정 시간 시뮬레이션)
+// api/schedule-notify.js — ⏰ 투두 기반 스케줄 알림
+// 플로우:
+//   배치 미완료 + 새벽 6시 전 → 매시간 "배치 독촉" 알림
+//   배치 미완료 + 6시 이후 → 매시간 강한 독촉
+//   배치 완료 → 해당 시간 투두 알림
+//   05:00 KST → 일간 모닝브리핑
+//
+// POST body: { assigned: bool, todos: [{id, text, time, done}] }
+// cron-job.org: 매시간 정각 POST 호출
 
-import { sendTelegram, todayKST, DEFAULT_SCHEDULE, PIPELINE_LABELS, callClaude, PIPELINES } from "./_lib/utils.js";
+import { sendTelegram, todayKST, callClaude } from "./_lib/utils.js";
 
-// KST 현재 시간
 const nowKST = () => {
   const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
   return {
@@ -18,44 +20,26 @@ const nowKST = () => {
   };
 };
 
-// 일간 브리핑 생성 (05:00 KST 전용)
-const generateDailyBriefing = async (date, weekday) => {
-  const pipeline = PIPELINES[weekday] || PIPELINES["월"];
+const generateMorningBriefing = async (date, weekday, todos) => {
+  const system = `당신은 HANOK 1인 크리에이터 기업의 전략기획자 AI입니다.
+매일 오전 5시 CEO에게 보내는 모닝브리핑을 작성합니다.
+톤: 간결하고 실행 중심. 이모지 적절히. 600자 이내.
+HTML 태그 사용 가능: <b>굵게</b>`;
 
-  const system = `당신은 HANOK(하노크) 1인 크리에이터 기업의 "전략기획자" AI 에이전트입니다.
-매일 오전 5시에 CEO에게 보내는 일간 모닝브리핑을 작성합니다.
+  const todoText = todos && todos.length > 0
+    ? todos.map(t => `- ${t.text}${t.time ? ` (${t.time})` : " (미배치)"}`).join("\n")
+    : "아직 할 일 미입력";
 
-브리핑 포함 사항:
-1. 오늘 날짜/요일 인사
-2. 오늘의 메인/서브 파이프라인
-3. 오늘 스케줄 요약 (시간대별 할 일)
-4. 웹소설/음원 현황
-5. CEO가 오늘 집중할 포인트 (2~3줄)
+  const msg = `오늘은 ${date} ${weekday}요일입니다.
 
-톤: 간결하고 실행 중심. 이모지 적절히. 텔레그램 메시지라 600자 이내.
-HTML 태그 사용 가능: <b>굵게</b>, <i>기울임</i>`;
+=== 오늘 예정 할 일 ===
+${todoText}
 
-  const scheduleText = DEFAULT_SCHEDULE
-    .sort((a, b) => a.time.localeCompare(b.time))
-    .map(s => `${s.time} | ${PIPELINE_LABELS[s.pipeline] || s.pipeline} | ${s.task}`)
-    .join("\n");
-
-  const userMessage = `오늘은 ${date} ${weekday}요일입니다.
-
-오늘의 파이프라인: 메인 [${pipeline.main}] / 서브 [${pipeline.sub}]
-웹소설: ${pipeline.novel || "—"}
-${pipeline.music ? "🎵 음원 제작일" : ""}
-
-=== 오늘 CEO 스케줄 ===
-${scheduleText}
-
-위 정보를 바탕으로 CEO용 모닝브리핑 텔레그램 메시지를 작성해주세요. 600자 이내.`;
+CEO용 모닝브리핑을 작성해주세요. 오늘 집중 포인트 포함. 600자 이내.`;
 
   try {
-    const result = await callClaude(system, userMessage, 800);
-    return result;
+    return await callClaude(system, msg, 800);
   } catch (e) {
-    console.error("[DailyBriefing] Claude error:", e.message);
     return null;
   }
 };
@@ -64,68 +48,75 @@ export default async function handler(req, res) {
   try {
     const { date, weekday } = todayKST();
     const kst = nowKST();
-    const results = [];
 
-    // ── test=1: 텔레그램 연결 테스트 ──
+    // ── test=1 ──
     if (req.query.test === "1") {
       const sent = await sendTelegram(
         `✅ <b>HANOK 텔레그램 연동 테스트</b>\n\n📅 ${date} ${weekday}요일 ${kst.fullTime}\n🤖 schedule-notify API 정상 작동 중\n\n🔗 <a href="https://doubley-agent.vercel.app">에이전트 열기</a>`
       );
-      return res.status(200).json({
-        agent: "schedule-notify",
-        mode: "test",
-        telegram_sent: sent,
-        kst_time: kst.fullTime,
-        env_check: {
-          has_bot_token: !!process.env.TELEGRAM_BOT_TOKEN,
-          has_chat_id: !!process.env.TELEGRAM_CHAT_ID,
-          chat_id: process.env.TELEGRAM_CHAT_ID || "NOT SET",
-        },
-      });
+      return res.status(200).json({ mode: "test", telegram_sent: sent, kst_time: kst.fullTime });
     }
 
-    // ── hour 파라미터로 시간 오버라이드 (시뮬레이션) ──
+    // ── POST body 파싱 ──
+    let assigned = false;
+    let todos = [];
+    if (req.method === "POST" && req.body) {
+      assigned = !!req.body.assigned;
+      todos = req.body.todos || [];
+    }
+    // GET 호출 (cron-job.org 기본 GET) → 미배치로 간주
+    // assigned 상태는 프론트에서 POST로 명시해줘야 함
+
     let targetHour = kst.hour;
-    let targetHHMM = kst.hhmm;
-    if (req.query.hour !== undefined) {
-      targetHour = parseInt(req.query.hour);
-      targetHHMM = `${String(targetHour).padStart(2, "0")}:00`;
-    }
+    if (req.query.hour !== undefined) targetHour = parseInt(req.query.hour);
 
-    // ── 05:00 KST: 일간 브리핑 ──
+    const results = [];
+
+    // ── 05:00 KST: 모닝브리핑 ──
     if (targetHour === 5) {
-      const briefingText = await generateDailyBriefing(date, weekday);
-      if (briefingText) {
-        const sent = await sendTelegram(
-          `🌅 <b>HANOK 모닝브리핑</b>\n📅 ${date} ${weekday}요일\n\n${briefingText}\n\n🔗 <a href="https://doubley-agent.vercel.app">에이전트 열기</a>`
-        );
-        results.push({ type: "daily_briefing", sent, time: "05:00" });
+      const briefingText = await generateMorningBriefing(date, weekday, todos);
+      const todoPreview = todos.length > 0
+        ? todos.map(t => `  • ${t.text}${t.time ? ` <b>${t.time}</b>` : " ⚠️미배치"}`).join("\n")
+        : "  (아직 할 일 없음)";
+
+      const msg = briefingText
+        ? `🌅 <b>HANOK 모닝브리핑</b>\n📅 ${date} ${weekday}요일\n\n${briefingText}\n\n📋 오늘 할 일:\n${todoPreview}\n\n🔗 <a href="https://doubley-agent.vercel.app">에이전트 열기</a>`
+        : `🌅 <b>Good Morning, CEO!</b>\n\n📅 ${date} ${weekday}요일\n\n📋 오늘 할 일:\n${todoPreview}\n\n⏰ 새벽 6시 전까지 시간 배치를 완료해주세요!\n🔗 <a href="https://doubley-agent.vercel.app">에이전트 열기</a>`;
+
+      const sent = await sendTelegram(msg);
+      results.push({ type: "morning_briefing", sent });
+    }
+
+    // ── 배치 미완료: 매시간 독촉 ──
+    if (!assigned && targetHour !== 5) {
+      const isLate = targetHour >= 6;
+      const urgency = isLate
+        ? `🚨 <b>배치 지연 알림</b> (${targetHour}시)`
+        : `⏰ <b>시간 배치 리마인더</b> (${targetHour}시)`;
+
+      const msg = `${urgency}\n📅 ${date} ${weekday}요일\n\n${
+        isLate
+          ? "새벽 6시가 지났는데 아직 오늘 스케줄 시간 배치가 완료되지 않았습니다! 지금 바로 배치해주세요."
+          : `새벽 6시 전까지 오늘 할 일의 시간 배치를 완료해주세요.\n현재 할 일: ${todos.length > 0 ? todos.length + "개 입력됨" : "미입력"}`
+      }\n\n🔗 <a href="https://doubley-agent.vercel.app">에이전트 열기</a>`;
+
+      const sent = await sendTelegram(msg);
+      results.push({ type: "assign_nudge", sent, hour: targetHour });
+    }
+
+    // ── 배치 완료: 해당 시간 투두 알림 ──
+    if (assigned && targetHour !== 5) {
+      const hhmm = `${String(targetHour).padStart(2, "0")}:00`;
+      const matching = todos.filter(t => t.time && t.time.startsWith(hhmm.slice(0,3)));
+
+      if (matching.length > 0) {
+        const taskLines = matching.map(t => `  ✅ <b>${t.text}</b>`).join("\n");
+        const msg = `⏰ <b>${hhmm} 스케줄 알림</b>\n📅 ${date} ${weekday}요일\n\n${taskLines}\n\n🔗 <a href="https://doubley-agent.vercel.app">에이전트 열기</a>`;
+        const sent = await sendTelegram(msg);
+        results.push({ type: "todo_notify", sent, time: hhmm, count: matching.length });
       } else {
-        const pipeline = PIPELINES[weekday] || PIPELINES["월"];
-        const fallback = `🌅 <b>Good Morning, CEO!</b>\n\n📅 ${date} ${weekday}요일\n🎯 메인: ${pipeline.main}\n📌 서브: ${pipeline.sub}\n📖 웹소설: ${pipeline.novel || "—"}\n${pipeline.music ? "🎵 음원 제작일\n" : ""}\n오늘도 화이팅! 💪`;
-        const sent = await sendTelegram(fallback);
-        results.push({ type: "daily_briefing_fallback", sent, time: "05:00" });
+        results.push({ type: "no_tasks", time: hhmm });
       }
-    }
-
-    // ── 매시간: 해당 시간 스케줄 알림 ──
-    const matchingTasks = DEFAULT_SCHEDULE.filter(s => s.time === targetHHMM);
-
-    if (matchingTasks.length > 0) {
-      const taskLines = matchingTasks.map(s => {
-        const label = PIPELINE_LABELS[s.pipeline] || s.pipeline;
-        return `  ${label}\n  → <b>${s.task}</b> (R${s.round})`;
-      }).join("\n\n");
-
-      const message = `⏰ <b>${targetHHMM} 스케줄 알림</b>\n📅 ${date} ${weekday}요일\n\n${taskLines}\n\n🔗 <a href="https://doubley-agent.vercel.app">에이전트 열기</a>`;
-
-      const sent = await sendTelegram(message);
-      results.push({ type: "schedule_notify", sent, time: targetHHMM, tasks: matchingTasks.length });
-    }
-
-    // 아무 알림도 없으면 로그만
-    if (results.length === 0) {
-      results.push({ type: "no_tasks", time: targetHHMM, message: `${targetHHMM}에 예정된 스케줄 없음` });
     }
 
     return res.status(200).json({
@@ -133,13 +124,13 @@ export default async function handler(req, res) {
       timestamp: new Date().toISOString(),
       kst_time: kst.fullTime,
       target_hour: targetHour,
-      target_hhmm: targetHHMM,
+      assigned,
+      todos_count: todos.length,
       date,
-      weekday,
       results,
     });
   } catch (error) {
     console.error("[ScheduleNotify] Error:", error.message);
-    return res.status(500).json({ error: error.message, agent: "schedule-notify" });
+    return res.status(500).json({ error: error.message });
   }
 }
