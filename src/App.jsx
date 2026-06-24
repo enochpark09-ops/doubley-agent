@@ -405,7 +405,9 @@ const AgentTab = () => {
 // ══════════════════════════════════════════════════════════════
 // 크리에이터 탭 — 카테고리별 채널 링크 관리
 // ══════════════════════════════════════════════════════════════
-const CREATOR_CHANNELS = [
+// 크리에이터 탭 — 카테고리별 채널 링크 관리 (편집·등록·진행률 추적)
+// ══════════════════════════════════════════════════════════════
+const CREATOR_CHANNELS_DEFAULT = [
   { category: "정치", emoji: "🎙️", color: "#e07070", channels: [
     { platform: "YouTube", handle: "@wjdcldbxnqj", url: "https://youtube.com/@wjdcldbxnqj", opened: true },
     { platform: "BluntEdge", handle: "thebluntedge.com", url: "https://thebluntedge.com", opened: true },
@@ -447,33 +449,146 @@ const CREATOR_CHANNELS = [
   ]},
 ];
 
+const CREATOR_LS_KEY = "hanok_creator_channels_v2";
+
+// 저장된 오버라이드를 기본값 위에 병합
+function loadCreatorChannels() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CREATOR_LS_KEY) || "{}");
+    return CREATOR_CHANNELS_DEFAULT.map(cat => ({
+      ...cat,
+      channels: cat.channels.map(ch => {
+        const ov = saved[`${cat.category}__${ch.platform}`];
+        return ov ? { ...ch, ...ov } : ch;
+      }),
+    }));
+  } catch {
+    return CREATOR_CHANNELS_DEFAULT;
+  }
+}
+
+function saveCreatorOverride(category, platform, patch) {
+  try {
+    const cur = JSON.parse(localStorage.getItem(CREATOR_LS_KEY) || "{}");
+    const k = `${category}__${platform}`;
+    cur[k] = { ...(cur[k] || {}), ...patch };
+    localStorage.setItem(CREATOR_LS_KEY, JSON.stringify(cur));
+  } catch (e) {
+    console.error("채널 저장 실패", e);
+  }
+}
+
 const CreatorTab = () => {
+  const [data, setData] = useState(loadCreatorChannels);
+  const [editing, setEditing] = useState(null); // `${category}__${platform}` 또는 null
+  const [form, setForm] = useState({ handle: "", url: "", opened: false });
+
+  const total = data.reduce((n, c) => n + c.channels.length, 0);
+  const openedCount = data.reduce((n, c) => n + c.channels.filter(ch => ch.opened).length, 0);
+  const pct = total ? Math.round((openedCount / total) * 100) : 0;
+
+  const startEdit = (cat, ch) => {
+    setEditing(`${cat.category}__${ch.platform}`);
+    setForm({ handle: ch.handle || "", url: ch.url || "", opened: !!ch.opened });
+  };
+  const cancelEdit = () => { setEditing(null); };
+
+  const saveEdit = (cat, ch) => {
+    const patch = { handle: form.handle.trim(), url: form.url.trim(), opened: form.opened };
+    saveCreatorOverride(cat.category, ch.platform, patch);
+    setData(prev => prev.map(c => c.category !== cat.category ? c : ({
+      ...c,
+      channels: c.channels.map(x => x.platform === ch.platform ? { ...x, ...patch } : x),
+    })));
+    setEditing(null);
+  };
+
+  const resetAll = () => {
+    if (!window.confirm("채널 링크를 모두 기본값으로 되돌릴까요? 직접 등록한 URL이 삭제됩니다.")) return;
+    try { localStorage.removeItem(CREATOR_LS_KEY); } catch {}
+    setData(loadCreatorChannels());
+    setEditing(null);
+  };
+
+  const inputStyle = {
+    width: "100%", boxSizing: "border-box", padding: "8px 10px", marginBottom: 6,
+    fontSize: 12, borderRadius: 6, border: `1px solid ${C.border}`,
+    background: C.bg, color: C.text, fontFamily: "'IBM Plex Mono', monospace",
+  };
+  const btn = (bg, brd, col) => ({
+    fontSize: 11, padding: "5px 12px", borderRadius: 6, background: bg,
+    border: `1px solid ${brd}`, color: col, fontWeight: 600, cursor: "pointer",
+  });
+
   return (
     <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
       <div style={{ flex:1, overflowY:"auto", padding:14 }}>
-        <div style={{ fontSize: 10, color: C.textDim, letterSpacing: 1, marginBottom: 12 }}>카테고리별 채널 링크</div>
-        {CREATOR_CHANNELS.map(cat => (
+        {/* 진행률 요약 */}
+        <div style={{ marginBottom: 14, background: C.surface, borderRadius: 12, padding: 14, border: `1px solid ${C.border}` }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom: 8 }}>
+            <span style={{ fontSize: 11, color: C.textMuted, letterSpacing: 1 }}>채널 가동 현황</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>{openedCount} / {total} <span style={{ fontSize: 11, color: C.textDim }}>({pct}%)</span></span>
+          </div>
+          <div style={{ height: 6, borderRadius: 4, background: `${C.border}66`, overflow: "hidden" }}>
+            <div style={{ width: `${pct}%`, height: "100%", background: C.gold, transition: "width .3s" }} />
+          </div>
+        </div>
+
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
+          <span style={{ fontSize: 10, color: C.textDim, letterSpacing: 1 }}>카테고리별 채널 링크</span>
+          <span onClick={resetAll} style={{ fontSize: 10, color: C.textDim, cursor: "pointer", textDecoration: "underline" }}>기본값 복원</span>
+        </div>
+
+        {data.map(cat => {
+          const catOpened = cat.channels.filter(c => c.opened).length;
+          return (
           <div key={cat.category} style={{ marginBottom: 12, background: C.surface, borderRadius: 12, padding: 14, border: `1px solid ${C.border}`, borderLeft: `4px solid ${cat.color}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
               <span style={{ fontSize: 18 }}>{cat.emoji}</span>
               <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{cat.category}</span>
+              <span style={{ marginLeft: "auto", fontSize: 10, color: catOpened === cat.channels.length ? cat.color : C.textDim }}>{catOpened}/{cat.channels.length} 가동</span>
             </div>
-            {cat.channels.map((ch, ci) => (
-              <div key={ci} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", marginBottom: 3, borderRadius: 8, background: ch.opened ? C.surface2 : `${C.border}33` }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: ch.opened ? cat.color : C.textDim, minWidth: 70 }}>{ch.platform}</span>
-                <div style={{ flex: 1 }}>
-                  {ch.handle && <div style={{ fontSize: 11, color: C.textMuted, fontFamily: "'IBM Plex Mono', monospace" }}>{ch.handle}</div>}
-                  {!ch.opened && <div style={{ fontSize: 10, color: C.red }}>⚠️ 미개설</div>}
+            {cat.channels.map((ch, ci) => {
+              const key = `${cat.category}__${ch.platform}`;
+              const isEditing = editing === key;
+              return (
+              <div key={ci} style={{ marginBottom: 3, borderRadius: 8, background: ch.opened ? C.surface2 : `${C.border}33`, overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: ch.opened ? cat.color : C.textDim, minWidth: 70 }}>{ch.platform}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {ch.handle && <div style={{ fontSize: 11, color: C.textMuted, fontFamily: "'IBM Plex Mono', monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ch.handle}</div>}
+                    {!ch.opened && <div style={{ fontSize: 10, color: C.red }}>⚠️ 미개설</div>}
+                    {ch.opened && !ch.url && <div style={{ fontSize: 10, color: C.gold }}>● URL 미등록</div>}
+                  </div>
+                  {!isEditing && ch.opened && ch.url && (
+                    <a href={ch.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, padding: "4px 10px", borderRadius: 6, background: `${cat.color}18`, border: `1px solid ${cat.color}44`, color: cat.color, textDecoration: "none", fontWeight: 600 }}>열기 →</a>
+                  )}
+                  {!isEditing && (
+                    <span onClick={() => startEdit(cat, ch)} style={{ fontSize: 10, padding: "4px 9px", borderRadius: 6, background: ch.opened && ch.url ? "transparent" : `${cat.color}18`, border: `1px solid ${ch.opened && ch.url ? C.border : cat.color + "44"}`, color: ch.opened && ch.url ? C.textDim : cat.color, fontWeight: 600, cursor: "pointer", marginLeft: ch.opened && ch.url ? 4 : 0 }}>
+                      {ch.opened ? (ch.url ? "✎" : "URL 등록") : "개설하기"}
+                    </span>
+                  )}
                 </div>
-                {ch.opened && ch.url ? (
-                  <a href={ch.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10, padding: "4px 10px", borderRadius: 6, background: `${cat.color}18`, border: `1px solid ${cat.color}44`, color: cat.color, textDecoration: "none", fontWeight: 600 }}>열기 →</a>
-                ) : ch.opened ? (
-                  <span style={{ fontSize: 10, color: C.textDim }}>URL 미등록</span>
-                ) : null}
+                {isEditing && (
+                  <div style={{ padding: "4px 10px 10px" }}>
+                    <input style={inputStyle} placeholder="핸들 / 표시명 (예: @handle, store.com)" value={form.handle} onChange={e => setForm(f => ({ ...f, handle: e.target.value }))} />
+                    <input style={inputStyle} placeholder="URL (https://...)" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} />
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.textMuted, marginBottom: 8, cursor: "pointer" }}>
+                      <input type="checkbox" checked={form.opened} onChange={e => setForm(f => ({ ...f, opened: e.target.checked }))} />
+                      가동 중 (개설 완료)
+                    </label>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <span onClick={() => saveEdit(cat, ch)} style={btn(`${cat.color}22`, `${cat.color}66`, cat.color)}>저장</span>
+                      <span onClick={cancelEdit} style={btn("transparent", C.border, C.textDim)}>취소</span>
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
