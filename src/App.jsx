@@ -442,10 +442,10 @@ const CREATOR_CHANNELS_DEFAULT = [
     { platform: "문피아", handle: "", url: "", opened: false },
   ]},
   { category: "음원", emoji: "🎵", color: "#7aabcc", channels: [
-    { platform: "DistroKid", handle: "Hanokh", url: "", opened: true },
+    { platform: "Spotify", handle: "Hanokh", url: "https://open.spotify.com/artist/62uhiMShfUTSsbZsI72i1L", opened: true },
   ]},
   { category: "스토어", emoji: "🏪", color: "#5ac0a0", channels: [
-    { platform: "스마트스토어", handle: "yourspaceyy", url: "https://smartstore.naver.com/yourspaceyy", opened: true },
+    { platform: "스마트스토어", handle: "onedoroom", url: "https://smartstore.naver.com/onedoroom", opened: true },
   ]},
 ];
 
